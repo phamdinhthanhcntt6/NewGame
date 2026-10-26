@@ -92,6 +92,9 @@ export function validateState(s: unknown): string[] {
       }
     }
   if (!isObj(s.market) || !isObj(s.market.saturation)) p.push('market');
+  const cafe = s.cafe;
+  if (!isObj(cafe) || !Array.isArray(cafe.ratings) || !Array.isArray(cafe.feedback) || !isObj(cafe.stats)) p.push('cafe');
+  else if (cafe.ratings.some((r) => !isNum(r) || r < 1 || r > 5)) p.push('cafe.ratings');
   return p;
 }
 

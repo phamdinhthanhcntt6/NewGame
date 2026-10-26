@@ -5,7 +5,7 @@ import type { TilePos } from '../../utils/tile';
  * Phaser. Saving = serialising this object; loading = validating + migrating it.
  * Services mutate it only through their own methods.
  */
-export const SAVE_SCHEMA_VERSION = 2;
+export const SAVE_SCHEMA_VERSION = 3;
 
 export interface ItemStack {
   qty: number;
@@ -72,6 +72,19 @@ export interface EquipmentState {
   job: ProcessingJob | null;
 }
 
+export interface FeedbackEntry {
+  orderId: number;
+  recipeId: string;
+  at: number;
+  stars: number;
+  score: number;
+  components: { recipeAccuracy: number; beanQuality: number; brewingPerformance: number; servingTime: number };
+  feedback: string[];
+  coins: number;
+  tip: number;
+  exp: number;
+}
+
 export interface GameState {
   schemaVersion: number;
   createdAt: number;
@@ -99,6 +112,12 @@ export interface GameState {
   };
   /** v2: market saturation per item (decays over time). */
   market: { saturation: Record<string, { value: number; at: number }> };
+  /** v3 (M6): café reputation (recent star ratings, failures count as low) and feedback history. */
+  cafe: {
+    ratings: number[];
+    feedback: FeedbackEntry[];
+    stats: { served: number; failed: number };
+  };
 }
 
 export interface NewGameOptions {
@@ -122,6 +141,7 @@ export function createNewGameState(o: NewGameOptions): GameState {
     player: { map: o.map, tile: null },
     processing: { equipment: {}, selectedRecipe: {} },
     market: { saturation: {} },
+    cafe: { ratings: [], feedback: [], stats: { served: 0, failed: 0 } },
   };
 }
 
@@ -129,4 +149,6 @@ export function createNewGameState(o: NewGameOptions): GameState {
 export const SAVE_MIGRATIONS: Record<number, (raw: Record<string, unknown>) => Record<string, unknown>> = {
   // v1 → v2 (M3): processing equipment and market state did not exist yet.
   1: (raw) => ({ ...raw, processing: { equipment: {}, selectedRecipe: {} }, market: { saturation: {} } }),
+  // v2 → v3 (M6): café reputation and feedback history start empty.
+  2: (raw) => ({ ...raw, cafe: { ratings: [], feedback: [], stats: { served: 0, failed: 0 } } }),
 };

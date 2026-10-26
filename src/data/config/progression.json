@@ -1,0 +1,69 @@
+{
+  "rating": {
+    "weights": {
+      "recipeAccuracy": 0.4,
+      "beanQuality": 0.25,
+      "brewingPerformance": 0.2,
+      "servingTime": 0.15
+    },
+    "preferredBeanBonus": 10,
+    "servingTime": {
+      "fullMarksUntilShare": 0.25
+    },
+    "starThresholds": [
+      0,
+      40,
+      55,
+      70,
+      85
+    ],
+    "priceMultiplier": [
+      0.6,
+      0.8,
+      1,
+      1.15,
+      1.3
+    ],
+    "tipShare": [
+      0,
+      0,
+      0,
+      0.1,
+      0.25
+    ],
+    "expMultiplier": [
+      0.5,
+      0.75,
+      1,
+      1.25,
+      1.5
+    ],
+    "feedback": {
+      "bitterOvershoot": 0.08,
+      "sweetOvershoot": 0.1,
+      "coldAfterMs": 45000,
+      "slowServiceShare": 0.6,
+      "aromaBeanQuality": 80
+    }
+  },
+  "reputation": {
+    "window": 20,
+    "start": 3,
+    "failedRating": 1,
+    "trafficPerStar": 0.15,
+    "trafficMin": 0.6,
+    "trafficMax": 1.45,
+    "tipBonusPerStar": 0.1
+  },
+  "feedbackHistoryLimit": 50,
+  "levels": {
+    "base": 50
+  },
+  "recipeUnlockLevel": {
+    "espresso": 1,
+    "americano": 1,
+    "vn_milk_coffee": 1,
+    "latte": 2,
+    "cappuccino": 3
+  }
+}

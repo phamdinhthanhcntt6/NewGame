@@ -32,7 +32,12 @@ export interface Drink {
   quality: number;
   /** Simulation time the drink was finished (serving-time / temperature in M6). */
   readyAt: number;
+  /** Accuracy per timing step (0–1). */
   steps: Record<string, number>;
+  /** Signed needle error per timing step (value − target): > 0 overshoot (e.g. over-extracted). */
+  stepErrors: Record<string, number>;
+  /** Ingredient choices made (e.g. which addition went in). */
+  choices: Array<{ step: string; chosen: string; correct: boolean }>;
 }
 
 interface Session {
@@ -44,6 +49,7 @@ interface Session {
   bean: { itemId: string; quality: number } | null;
   choices: Array<{ step: string; chosen: string; correct: boolean }>;
   scores: Record<string, number>;
+  errors: Record<string, number>;
 }
 
 export type BrewResult = { ok: true } | { ok: false; reason: string; applicable?: boolean };
@@ -198,7 +204,7 @@ export class BrewingService {
       const order = this.orders.get(orderId)!;
       const t = this.orders.transition(orderId, 'PREPARING');
       if (!t.ok) return no(t.reason);
-      this.session = { orderId, recipeId: order.recipeId, stepIndex: 0, armedAt: null, bean: null, choices: [], scores: {} };
+      this.session = { orderId, recipeId: order.recipeId, stepIndex: 0, armedAt: null, bean: null, choices: [], scores: {}, errors: {} };
       this.bus.emit('brew:started', { orderId, recipeId: order.recipeId });
     }
     this.session!.armedAt = this.now();
@@ -254,6 +260,7 @@ export class BrewingService {
     const step = a.step as Extract<BrewStep, { kind: 'timing' }>;
     const value = needleAt(this.now() - this.session!.armedAt!, step.periodMs);
     this.session!.scores[step.id] = timingAccuracy(value, step.target, step.tolerance, this.config.scoring.zeroAt);
+    this.session!.errors[step.id] = value - step.target;
     return this.advance();
   }
 
@@ -297,6 +304,8 @@ export class BrewingService {
       quality: Math.round(beanWeight * beanQuality + performanceWeight * performance * 100),
       readyAt: this.now(),
       steps: { ...s.scores },
+      stepErrors: { ...s.errors },
+      choices: s.choices.map((c) => ({ ...c })),
     };
     const t = this.orders.transition(s.orderId, 'READY');
     if (!t.ok) return no(t.reason);
