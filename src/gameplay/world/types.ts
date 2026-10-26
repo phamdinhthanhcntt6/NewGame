@@ -47,6 +47,8 @@ export interface MapData {
   objects: MapObjectData[];
   /** Named walkable spots for AI (spawn, exit, door, orderPoint, queue, waitSpots…). */
   markers?: Record<string, TilePos[]>;
+  /** M7: maps the player may decorate. Furniture can only be placed inside `area`. */
+  decor?: { area: Footprint[] };
 }
 
 export interface WorldObject {

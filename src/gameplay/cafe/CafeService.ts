@@ -141,7 +141,8 @@ export class CafeService {
   private readonly customers = new Map<string, Customer>();
   private readonly queue: string[] = [];
   private readonly reserved = new Map<string, string>(); // spot key → customer id
-  private readonly spots: Spot[];
+  /** Rebuilt when furniture changes (refreshSpots). */
+  private spots: Spot[];
   private nextSpawnAt: number;
   private nextId = 1;
   open = true;
@@ -175,13 +176,7 @@ export class CafeService {
     this.doorTile = one('door');
     this.orderPoint = one('orderPoint');
     this.queueTiles = world.markers('queue');
-    const spotsOf = (type: string, kind: Spot['kind']): Spot[] =>
-      world
-        .allObjects()
-        .filter((o) => o.type === type)
-        .map((o) => ({ key: `${kind}:${o.id}`, kind, objectId: o.id, tile: { x: o.footprint.x, y: o.footprint.y } }));
-    // Seats first, then standing spots.
-    this.spots = [...spotsOf('chair', 'seat'), ...spotsOf('standing_spot', 'stand')];
+    this.spots = this.collectSpots();
     this.nextSpawnAt = now() + config.spawn.firstDelayMs;
   }
 
@@ -310,7 +305,8 @@ export class CafeService {
     if (this.open && t >= this.nextSpawnAt) {
       if (this.customers.size < this.config.spawn.maxConcurrent) this.spawn();
       const s = this.config.spawn;
-      this.nextSpawnAt = t + this.rng.range(s.minIntervalMs, s.maxIntervalMs) / Math.max(0.1, this.hooks.trafficFactor?.() ?? 1);
+      // Reputation (M6) and decor (M7) both bring customers more often.
+      this.nextSpawnAt = t + this.rng.range(s.minIntervalMs, s.maxIntervalMs) / Math.max(0.1, (this.hooks.trafficFactor?.() ?? 1) * this.decorBonuses().trafficFactor);
     }
     for (const c of [...this.customers.values()]) this.update(c, dtMs);
     for (const [id, c] of this.customers) if (c.gone) this.customers.delete(id);
@@ -332,7 +328,7 @@ export class CafeService {
     const c: Customer = {
       id,
       archetype: key,
-      def,
+      def: this.withDecorPatience(def),
       actor,
       fsm: new StateMachine<CustomerState>(`customer:${id}`, 'SPAWNING', CUSTOMER_TRANSITIONS, now),
       recipeId: chosen,
@@ -526,5 +522,46 @@ export class CafeService {
       }
     }
     return 'moving';
+  }
+
+  // ── furniture (M7) ──────────────────────────────────────────────────────
+
+  private decorBonuses: () => { patienceFactor: number; trafficFactor: number } = () => ({ patienceFactor: 1, trafficFactor: 1 });
+
+  /** Furniture bonuses: comfort makes new customers more patient, decor brings them more often. */
+  setDecorBonuses(fn: () => { patienceFactor: number; trafficFactor: number }): void {
+    this.decorBonuses = fn;
+  }
+
+  /** Seats (anything customers are served on) first, then standing spots. Reserved spots are never dropped. */
+  private collectSpots(): Spot[] {
+    const serveSpots = this.world.allObjects().filter((o) => o.def.interaction?.actions.some((a) => a.handler === 'cafe.serve'));
+    const spot = (o: (typeof serveSpots)[number], kind: Spot['kind']): Spot => ({ key: `${kind}:${o.id}`, kind, objectId: o.id, tile: { x: o.footprint.x, y: o.footprint.y } });
+    const spots = [...serveSpots.filter((o) => o.type !== 'standing_spot').map((o) => spot(o, 'seat')), ...serveSpots.filter((o) => o.type === 'standing_spot').map((o) => spot(o, 'stand'))];
+    for (const c of this.customers.values()) if (c.spot && !spots.some((s) => s.key === c.spot!.key)) spots.push(c.spot);
+    return spots;
+  }
+
+  /** Furniture changed: new seats become available, stored ones disappear. */
+  refreshSpots(): void {
+    this.spots = this.collectSpots();
+  }
+
+  isSpotReserved(objectId: string): boolean {
+    return this.spots.some((s) => s.objectId === objectId && this.reserved.has(s.key));
+  }
+
+  /** The walkable grid changed: everyone still walking plans a new path from where they stand. */
+  onNavChanged(): void {
+    for (const c of this.customers.values()) {
+      if (!c.target) continue;
+      c.needsPlan = true;
+      c.retryInMs = 0;
+    }
+  }
+
+  private withDecorPatience(def: ArchetypeDef): ArchetypeDef {
+    const f = this.decorBonuses().patienceFactor;
+    return f === 1 ? def : { ...def, orderPatienceMs: Math.round(def.orderPatienceMs * f), drinkPatienceMs: Math.round(def.drinkPatienceMs * f) };
   }
 }

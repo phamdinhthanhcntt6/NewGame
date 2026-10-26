@@ -95,6 +95,13 @@ export function validateState(s: unknown): string[] {
   const cafe = s.cafe;
   if (!isObj(cafe) || !Array.isArray(cafe.ratings) || !Array.isArray(cafe.feedback) || !isObj(cafe.stats)) p.push('cafe');
   else if (cafe.ratings.some((r) => !isNum(r) || r < 1 || r > 5)) p.push('cafe.ratings');
+  const decor = s.decor;
+  if (!isObj(decor) || !isObj(decor.layouts) || !isNum(decor.nextId)) p.push('decor');
+  else
+    for (const [map, layout] of Object.entries(decor.layouts)) {
+      const ok = (f: unknown) => isObj(f) && typeof f.id === 'string' && typeof f.type === 'string' && isNum(f.x) && isNum(f.y) && isNum(f.rotation);
+      if (!Array.isArray(layout) || !layout.every(ok)) p.push(`decor.layouts.${map}`);
+    }
   return p;
 }
 

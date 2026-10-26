@@ -62,5 +62,33 @@
   "box": {
     "label": "Hộp",
     "category": "debug"
+  },
+  "furn_chair": {
+    "label": "Ghế gỗ",
+    "category": "furniture"
+  },
+  "furn_armchair": {
+    "label": "Ghế bành",
+    "category": "furniture"
+  },
+  "furn_table": {
+    "label": "Bàn tròn",
+    "category": "furniture"
+  },
+  "furn_table_long": {
+    "label": "Bàn dài",
+    "category": "furniture"
+  },
+  "furn_plant": {
+    "label": "Chậu cây",
+    "category": "furniture"
+  },
+  "furn_lamp": {
+    "label": "Đèn cây",
+    "category": "furniture"
+  },
+  "furn_bookshelf": {
+    "label": "Kệ sách",
+    "category": "furniture"
   }
 }

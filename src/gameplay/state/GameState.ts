@@ -5,7 +5,7 @@ import type { TilePos } from '../../utils/tile';
  * Phaser. Saving = serialising this object; loading = validating + migrating it.
  * Services mutate it only through their own methods.
  */
-export const SAVE_SCHEMA_VERSION = 3;
+export const SAVE_SCHEMA_VERSION = 4;
 
 export interface ItemStack {
   qty: number;
@@ -85,6 +85,15 @@ export interface FeedbackEntry {
   exp: number;
 }
 
+/** v4 (M7): one placed piece of furniture. `id` is the world object id (map ids for the starting set). */
+export interface PlacedFurniture {
+  id: string;
+  type: string;
+  x: number;
+  y: number;
+  rotation: number;
+}
+
 export interface GameState {
   schemaVersion: number;
   createdAt: number;
@@ -118,6 +127,12 @@ export interface GameState {
     feedback: FeedbackEntry[];
     stats: { served: number; failed: number };
   };
+  /**
+   * v4 (M7): furniture layout per map. A map without an entry still shows the
+   * furniture from its JSON; the first edit stores the full layout here.
+   * Furniture not placed is an item in the shared inventory.
+   */
+  decor: { layouts: Record<string, PlacedFurniture[]>; nextId: number };
 }
 
 export interface NewGameOptions {
@@ -142,6 +157,7 @@ export function createNewGameState(o: NewGameOptions): GameState {
     processing: { equipment: {}, selectedRecipe: {} },
     market: { saturation: {} },
     cafe: { ratings: [], feedback: [], stats: { served: 0, failed: 0 } },
+    decor: { layouts: {}, nextId: 1 },
   };
 }
 
@@ -151,4 +167,6 @@ export const SAVE_MIGRATIONS: Record<number, (raw: Record<string, unknown>) => R
   1: (raw) => ({ ...raw, processing: { equipment: {}, selectedRecipe: {} }, market: { saturation: {} } }),
   // v2 → v3 (M6): café reputation and feedback history start empty.
   2: (raw) => ({ ...raw, cafe: { ratings: [], feedback: [], stats: { served: 0, failed: 0 } } }),
+  // v3 → v4 (M7): no saved layouts yet, so every map keeps its starting furniture.
+  3: (raw) => ({ ...raw, decor: { layouts: {}, nextId: 1 } }),
 };

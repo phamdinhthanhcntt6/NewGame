@@ -57,6 +57,13 @@ export interface ActorView {
 
 export type FeedbackKind = 'ok' | 'info' | 'error';
 
+/** Decorate mode: the piece being placed, drawn where it would go. */
+export interface PlacementPreview {
+  footprint: Footprint;
+  valid: boolean;
+  label: string;
+}
+
 export interface WorldRenderer {
   buildWorld(floor: FloorTileView[], objects: ObjectViewData[]): void;
   addObject(o: ObjectViewData): void;
@@ -77,6 +84,10 @@ export interface WorldRenderer {
   setHoverTile(tile: TilePos | null): void;
   /** Short-lived world-space feedback (e.g. "Unreachable" over a tile). */
   showFeedback(at: WorldPos, text: string, kind: FeedbackKind): void;
+  /** Decorate mode: highlight where furniture may go (null hides it). */
+  setDecorArea(area: Footprint[] | null): void;
+  /** Decorate mode: ghost of the selected piece, green when valid, red when not (null hides it). */
+  setPlacementPreview(preview: PlacementPreview | null): void;
   /** World point at the centre of the map, for camera framing. */
   /** `insetRight`: screen px covered by a UI panel on the right, kept clear of the map. */
   frame(widthTiles: number, heightTiles: number, insetRight?: number): void;

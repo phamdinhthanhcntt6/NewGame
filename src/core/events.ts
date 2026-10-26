@@ -58,4 +58,7 @@ export interface GameEvents {
   'shop:closed': { shopId: string };
   'save:written': { at: number };
   'save:loadProblem': { status: 'corrupt' | 'invalid' | 'unsupported'; detail: string };
+  'decor:modeChanged': { active: boolean };
+  'decor:changed': { action: 'placed' | 'moved' | 'stored'; objectId: string; type: string };
+  'decor:rejected': { reason: string; tile: TilePos | null };
 }

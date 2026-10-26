@@ -199,6 +199,11 @@ export class CafeHud {
     this.bar.fillStyle(0xffffff, 1).fillRect(10 + needle * BAR_W - 2, y - 4, 4, 24);
   }
 
+  /** Hidden while the decorate panel uses the same slot. */
+  setVisible(on: boolean): void {
+    if (this.root.visible !== on) this.root.setVisible(on);
+  }
+
   destroy(): void {
     this.scene.scale.off(Phaser.Scale.Events.RESIZE, this.layout, this);
     this.root.destroy();

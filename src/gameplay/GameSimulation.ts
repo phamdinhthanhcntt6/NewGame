@@ -24,6 +24,7 @@ import { SupplyService } from './cafe/SupplyService';
 import { RatingService } from './cafe/RatingService';
 import { ProgressionService } from './progression/ProgressionService';
 import type { FeedbackEntry } from './state/GameState';
+import { FurnitureService, type DecorView } from './decor/FurnitureService';
 import { createNewGameState, type GameState, type ItemStack, type TxRecord } from './state/GameState';
 import { WorldModel } from './world/WorldModel';
 import type { MapData } from './world/types';
@@ -66,6 +67,8 @@ export interface SimulationSnapshot {
   reputation: { value: number; traffic: number; recent: FeedbackEntry[]; served: number; failed: number };
   /** null on maps without a café floor. */
   cafe: { customers: CustomerView[]; orders: Order[]; recentOrders: Order[]; queue: string[]; freeSpots: number; brew: BrewView | null; nextToBrew: number | null; heldDrink: { id: string; recipeId: string; orderId: number; quality: number } | null } | null;
+  /** null on maps that can't be decorated. */
+  decor: DecorView | null;
 }
 
 export interface SimulationOptions {
@@ -100,6 +103,7 @@ export class GameSimulation {
   readonly supplies: SupplyService;
   readonly progression: ProgressionService;
   readonly rating: RatingService;
+  readonly decor: FurnitureService;
   readonly player: Actor;
   readonly playerInteraction: InteractionService;
   readonly config: GameplayConfig;
@@ -126,6 +130,16 @@ export class GameSimulation {
     this.world = new WorldModel(map, content.objectTypes);
     this.nav = new NavigationService(this.world.grid, this.config.player.bodyRadius);
     this.tx = new TransactionService(this.state, content.items, eco, this.bus, this.clock);
+    // Before the player is placed: a saved furniture layout changes which tiles are walkable.
+    this.decor = new FurnitureService(this.state, this.world, content.furniture, this.tx, this.bus, this.config.player.bodyRadius, {
+      actorTiles: () => [this.player.tile, ...(this.cafe?.views().map((c) => c.tile) ?? [])],
+      isSeatReserved: (id) => this.cafe?.isSpotReserved(id) ?? false,
+      playerBusy: () => {
+        const i = this.playerInteraction.snapshot();
+        return i.current !== null || i.queue.length > 0;
+      },
+      playerLevel: () => this.progression.level,
+    });
     this.shops = new ShopSessionService(this.world, this.bus, eco.farm.shopLeaveDistance);
     this.progression = new ProgressionService(this.state, content.progression, content.seeds, this.bus);
     this.rating = new RatingService(this.state, content.progression, content.recipes, this.bus);
@@ -150,6 +164,16 @@ export class GameSimulation {
     this.brewing = new BrewingService(this.world, this.nav, this.player, this.orders, content.recipes, content.brewing, content.items, this.tx, this.bus, () => this.timeMs);
     this.supplies = new SupplyService(content.brewing.supplies, this.tx, this.shops);
     registerCafeHandlers(this.actions, this.cafe, this.brewing, this.bus, Object.keys(content.maps));
+
+    // M7: furniture feeds the café's bonuses; any change rebuilds seats and paths.
+    this.cafe?.setDecorBonuses(() => this.decor.bonuses());
+    this.bus.on('decor:modeChanged', ({ active }) => active && this.playerInteraction.cancelAll('superseded'));
+    this.bus.on('decor:changed', ({ action, objectId }) => {
+      if (action !== 'placed') this.playerInteraction.onObjectRemoved(objectId);
+      this.playerInteraction.onNavChanged();
+      this.cafe?.refreshSpots();
+      this.cafe?.onNavChanged();
+    });
   }
 
   /** Resume where the save left the player, if that spot is still walkable on this map. */
@@ -180,6 +204,7 @@ export class GameSimulation {
 
   /** Player input → command. A click on an object interacts; a click on floor moves. */
   clickTile(tile: TilePos): void {
+    if (this.decor.isActive) return void this.decor.click(tile, null);
     const obj = this.world.objectAt(tile);
     if (obj) this.clickObject(obj.id);
     else this.playerInteraction.moveTo(tile);
@@ -189,6 +214,7 @@ export class GameSimulation {
   clickObject(id: string): void {
     const obj = this.world.getObject(id);
     if (!obj) return;
+    if (this.decor.isActive) return void this.decor.click({ x: obj.footprint.x, y: obj.footprint.y }, id);
     this.bus.emit('world:objectSelected', { objectId: id });
     if (!obj.def.interaction) {
       this.playerInteraction.moveTo({ x: obj.footprint.x, y: obj.footprint.y });
@@ -202,6 +228,7 @@ export class GameSimulation {
 
   /** Clicking a customer: serve them at their seat, or take their order at the counter. */
   clickCustomer(id: string): void {
+    if (this.decor.isActive) return;
     const c = this.cafe?.customer(id);
     if (!c) return;
     if (c.spot) return this.clickObject(c.spot.objectId);
@@ -210,6 +237,7 @@ export class GameSimulation {
   }
 
   cancel(): void {
+    if (this.decor.isActive) return this.decor.escape();
     this.playerInteraction.cancelAll('playerCancelled');
   }
 
@@ -226,6 +254,7 @@ export class GameSimulation {
    * transient and simply end.
    */
   prepareTravel(targetMap: string): GameState {
+    this.decor.exit();
     this.cancel();
     this.captureState();
     this.state.player = { map: targetMap, tile: null };
@@ -283,6 +312,7 @@ export class GameSimulation {
       cafe: this.cafe
         ? { customers: this.cafe.views(), orders: this.orders.activeOrders().map((o) => structuredClone(o)), recentOrders: this.orders.recent().slice(0, 8).map((o) => structuredClone(o)), queue: [...this.cafe.queueOrder()], freeSpots: this.cafe.freeSpots(), brew: this.brewing.view(), nextToBrew: this.brewing.nextOrderToBrew(), heldDrink: (() => { const d = this.brewing.heldDrink(); return d ? { id: d.id, recipeId: d.recipeId, orderId: d.orderId, quality: d.quality } : null; })() }
         : null,
+      decor: this.decor.available ? this.decor.view() : null,
     };
   }
 }

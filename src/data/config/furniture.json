@@ -1,0 +1,17 @@
+{
+  "catalog": {
+    "chair": { "itemId": "furn_chair", "price": 40, "comfort": 0, "decor": 0, "unlockLevel": 1 },
+    "armchair": { "itemId": "furn_armchair", "price": 150, "comfort": 10, "decor": 2, "unlockLevel": 2 },
+    "cafe_table": { "itemId": "furn_table", "price": 60, "comfort": 0, "decor": 0, "unlockLevel": 1 },
+    "cafe_table_long": { "itemId": "furn_table_long", "price": 110, "comfort": 4, "decor": 0, "unlockLevel": 2 },
+    "plant": { "itemId": "furn_plant", "price": 50, "comfort": 0, "decor": 4, "unlockLevel": 1 },
+    "floor_lamp": { "itemId": "furn_lamp", "price": 90, "comfort": 3, "decor": 6, "unlockLevel": 2 },
+    "bookshelf": { "itemId": "furn_bookshelf", "price": 160, "comfort": 2, "decor": 12, "unlockLevel": 3 }
+  },
+  "bonuses": {
+    "comfortCap": 60,
+    "decorCap": 60,
+    "patiencePerComfort": 0.005,
+    "trafficPerDecor": 0.005
+  }
+}

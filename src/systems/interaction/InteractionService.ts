@@ -145,6 +145,26 @@ export class InteractionService {
     }
   }
 
+  /** The walkable grid changed (furniture placed or moved): re-plan an ongoing walk from where the actor is. */
+  onNavChanged(): void {
+    if (this.moveTarget) {
+      const target = this.moveTarget;
+      const plan = this.nav.planToTileOrNearest(this.actor.pos, target, this.config.blockedClickSearchRadius);
+      if (plan) {
+        this.actor.setWaypoints(plan.waypoints);
+        this.moveTarget = plan.goal;
+      } else {
+        this.moveTarget = null;
+        this.actor.clearWaypoints();
+        this.setState(this.actor.restState());
+        this.bus.emit('move:unreachable', { actorId: this.actor.id, target });
+      }
+      return;
+    }
+    const c = this.current;
+    if (c?.phase === 'approach') this.start(c.intent, c.reapproaches);
+  }
+
   // ── simulation ──────────────────────────────────────────────────────────
 
   tick(dtMs: number): void {

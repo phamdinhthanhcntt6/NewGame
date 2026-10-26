@@ -119,6 +119,7 @@ Payload types are in `src/core/events.ts`.
 | `data/maps/sandbox.json`, `data/maps/farm.json` | Maps; objects may carry `props` (e.g. plot `price`). Validated at load |
 | `data/content.ts` | Typed bundle of all the above + cross-reference validation (seed → item ids, soil levels 1..n) |
 | `data/locales/vi.json` | UI strings |
+| `data/config/furniture.json` (M7) | Furniture catalog (item, price, comfort, decor, unlock level) and bonus caps/rates; maps declare a `decor.area` |
 
 ## 8. Extension points for the next milestones
 - **New gameplay verbs** (roast, brew, serve): register handlers in `ActionRegistry`; add actions to object types in data. `InteractionService` does not change.
@@ -272,3 +273,46 @@ locked ──buyPlot──▶ EMPTY ─prepare─▶ PREPARED ─plant(−1 seed
 - Level from total EXP: level *L* starts at `50 × L × (L − 1)` EXP (0, 100, 300, 600, 1000…). EXP comes only through `TransactionService` (harvests, processing, served drinks).
 - `progression:levelUp` fires once per level gained.
 - **Unlocks:** recipes (`recipeUnlockLevel`: espresso / americano / cà phê sữa đá at 1, latte at 2, cappuccino at 3). Customers only order unlocked recipes; if none of their favourites is unlocked they pick any unlocked one. Seeds follow `seeds.json unlockLevel` (Culi at 3); `buySeeds` refuses with `levelTooLow`, and the HUD shows "Cần cấp 3".
+
+## 25. Furniture & decoration (M7)
+`src/gameplay/decor/FurnitureService.ts`, data `data/config/furniture.json`, map field `decor.area`.
+- **Catalog:** chair (seat), armchair (seat, comfort 10), round table, long table (2×1, comfort 4), plant (decor 4), floor lamp (comfort 3, decor 6), bookshelf (2×1, decor 12). Prices 40–160. Armchair, long table and lamp unlock at level 2, the bookshelf at 3 (`buy` refuses with `locked`).
+- **Furniture is an inventory item while unplaced** (`furn_*`, category `furniture`), so buying, placing and storing all go through `TransactionService`:
+  - *buy*: one transaction, coins out + 1 item in (`buyFurniture:<type>`);
+  - *place*: validated first, then 1 item out (`placeFurniture:<type>`) in the same step the object appears;
+  - *store*: 1 item back in (`storeFurniture:<type>`); refused if the bag is full or the seat is reserved.
+- **The starting tables, chairs and plants are furniture too.** A map's JSON furniture is its starting layout. The first edit saves the whole layout in `state.decor.layouts[mapId]`; from then on the saved layout replaces the map's own furniture (nothing is added back on load). New pieces get ids `f<n>` (`decor.nextId`).
+- **Load safety:** each saved piece is re-validated when the map loads. A piece that no longer fits (map data changed) goes back to the bag (`decor:returned`) instead of vanishing.
+- **Save schema v4** adds `decor: { layouts, nextId }`; `SAVE_MIGRATIONS[3]` starts it empty, so v3 saves keep the starting café.
+- **Bonuses** (from what is placed, each capped at 60):
+  - `patienceFactor = 1 + comfort × 0.005` multiplies a **new** customer's order and drink patience, and therefore the order's time limit and the M6 serving-time yardstick;
+  - `trafficFactor = 1 + decor × 0.005` divides the time between arrivals, on top of M6 reputation;
+  - seats are every object with the `cafe.serve` action.
+  The starting café has comfort 0 and decor 8 (two plants), i.e. +4% traffic.
+
+## 26. Placement validation & navigation rebuild (M7)
+`FurnitureService.check(type, at, rotation, movingId)` returns the first failing rule:
+
+| Reason | Rule |
+|---|---|
+| `outOfArea` | every footprint tile inside `decor.area` and on walkable terrain (café floor `x 1–12, y 5–11`; never behind the counter, in walls or on the street) |
+| `overlap` | no other object on any tile, including non-blocking chairs and standing spots (a piece being moved doesn't collide with itself) |
+| `reservedTile` | no AI marker tile (spawn, exit, door, order point, queue) |
+| `occupied` | nobody (player or customer) standing on the footprint |
+| `seatInUse` | a seat a customer has reserved can't be picked up, moved or stored |
+| `blocksPath` | on a **copy** of the nav grid with the piece in its new place, flood-filled from the street spawn: every marker, the player start, every person's tile, every seat tile and at least one approach tile of **every** interactive object (stations, counter from its north side, shelf, travel sign, seats) must stay reachable. An object left with no approach tile at all counts as blocked |
+| `invalidRotation`, `unknownFurniture`, `notOwned` | data / inventory checks |
+
+- A check never touches the live grid (`NavGrid.clone()`), so the ghost can be validated every frame.
+- **Commit:** a move is `removeObject` + `addObject` with the same id, so blocker counts stay exact (a fuzz test compares the grid with the objects after 300 random operations). Then `decor:changed` fires and the simulation:
+  - cancels player intents that targeted a moved/stored object (`onObjectRemoved`);
+  - re-plans the player's walk or approach from where they stand (`InteractionService.onNavChanged`);
+  - rebuilds the café's seat list (`CafeService.refreshSpots`; reserved spots are always kept);
+  - makes every walking customer re-plan from where they stand (`CafeService.onNavChanged`).
+
+## 27. Decorate mode (M7)
+- `FurnitureService.enter/exit` is a mode, not a scene (S13). Entering needs a free player (`playerBusy` while an interaction runs or is queued); a plain walk is stopped. Travel leaves the mode.
+- While active, `GameSimulation.clickTile/clickObject` go to the decorator: with a selection, a click confirms it at the floor tile under the pointer; without one, clicking furniture picks it up for moving. Customers can't be clicked. Esc / right click (`cancel`) drops the selection, then exits.
+- **Selection:** `selectToPlace(type)` (needs one in the bag) or `pick(objectId)`; `rotate()` turns it a quarter; `hover(tile)` positions the ghost; `confirm(tile)`; `storeSelected()`. Failures emit `decor:rejected` (red text at the tile) and keep the selection.
+- **Snapshot `decor`:** active, selection, preview `{ footprint, valid, reason }`, placed layout, owned counts, bonuses, area. `null` on maps without a decor area (farm).
+- **UI (placeholder):** `DecorHud` (catalog with buy/place, selection with rotate/store/deselect, bonus scores and effects) takes the café panel's slot. `DecorPresenter` redraws changed objects and draws the area grid and the green/red ghost through `WorldRenderer.setDecorArea / setPlacementPreview`. While decorating, the world scene follows the pointer every frame (Phaser can drop the first move after a HUD click). **R** rotates.

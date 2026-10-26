@@ -8,7 +8,7 @@
 | `npm run typecheck` | `tsc --noEmit` (TypeScript 7.0.2, strict + `noUncheckedIndexedAccess`) |
 | `npm run build` | Vite production build |
 | `npm test` | Vitest unit tests (`tests/unit`), headless, no browser |
-| `npm run e2e` | Playwright (Chromium) against `npm run dev` on port 5180 |
+| `npm run e2e` | Playwright (Chromium) against `npm run dev` on port 5180. When a second checkout/worktree runs at the same time, set `TCSS_PORT` (e.g. `5190`) for it; otherwise `reuseExistingServer` would test the other checkout's server |
 
 ## 2. Principles
 - Gameplay rules are tested **headless** through `GameSimulation` with deterministic ticks.
@@ -91,6 +91,27 @@ Updated by design: the M5 serve test now expects the rated payment (5★ latte =
 ### E2E — 2 new tests (`tests/e2e/m6-rating.spec.ts`, 90 s timeout: two full brews)
 A latte made with water is rated "wrong order" with fewer stars and less money than a correct one (real clicks + Space); reputation and rating history persist across a reload. The M5 full-latte test now asserts ≥ 4★ and payment = rated coins + tip.
 
+## 3g. M7 coverage (all passing 2026-10-27) — totals now 185 unit + 27 E2E
+
+### Unit — 32 new tests (`furniture.test.ts`)
+- Starting layout is movable furniture; bonuses come from what is placed, with caps.
+- **Comfort → longer patience for new customers only, and the order's time limit follows.** **Decor → arrival intervals shrink by exactly the traffic factor** (same seed).
+- Buy is one transaction and refuses (locked / unknown / no coins) without side effects. Place consumes the item and blocks the tile.
+- Every rejection reason: `outOfArea` (incl. a 2×1 piece half in the wall), `overlap` (incl. non-blocking chairs and standing spots), `reservedTile` (queue, order point, door), `invalidRotation`, `unknownFurniture`, `occupied` by the player. **Blocking the door path is rejected**; walling in a seat is rejected.
+- Move frees old tiles and blocks new ones; rotation swaps a 2×1 footprint; store returns the item and removes the seat.
+- **A new chair is a real seat** a customer walks to and sits on; after that it can't be moved, stored or picked up.
+- A customer walking to their seat and the player walking across the floor both re-plan around a piece placed on their path.
+- **300-operation fuzz** (buy/place/move/rotate/store): furniture is conserved, markers stay reachable, the grid always equals the objects.
+- Save → load restores the exact layout without re-adding map furniture; a saved piece that no longer fits goes back to the bag; v3→v4 migration keeps the starting café; a corrupted layout entry invalidates the save.
+- Decorate mode: select → red/green preview → confirm; pick → rotate → move; store; Esc twice. World clicks don't move the player while decorating; entering is refused while busy and stops a plain walk; a failed confirm keeps the selection; travel exits the mode; the farm can't be decorated.
+- Catalog validation; every refusal reason has a Vietnamese string (exhaustive at compile time).
+
+Updated by design: the v1 migration test now targets the current schema version instead of a hard-coded number.
+
+### E2E — 2 new tests (`tests/e2e/m7-decor.spec.ts`)
+- Real clicks and pointer moves: buy a plant; red ghost on a queue tile (click refused, `decor:rejected`); green ghost on a free tile, place; pick up a table, rotate with **R**, drop it elsewhere; store a plant; leave the mode and walk; **reload restores the exact layout**.
+- A new chair raises free seats 12 → 13. After an order is taken, a table is placed on the customer's path *ahead of them* (asserted), and the customer reaches their seat without ever standing on that tile.
+
 ## 4. Mutation checks performed for M1
 | Deliberate break | Tests failing |
 |---|---|
@@ -161,6 +182,22 @@ A latte made with water is rated "wrong order" with fewer stars and less money t
 | Seeds ignore level | 2 |
 | Level-up announced repeatedly | 1 |
 
+### M7 mutation checks
+| Deliberate break | Unit tests failing |
+|---|---|
+| Connectivity check off | 2 |
+| AI markers not reserved | 3 |
+| People not checked | 1 |
+| Placing keeps the item in the bag | 3 |
+| Saved layout ignored on load | 2 |
+| Café seat list not rebuilt | 2 |
+| Customers don't re-plan | 1 |
+| Player doesn't re-plan | 1 |
+| Comfort ignored | 1 |
+| Decor traffic ignored | 1 |
+| Reserved seat can be moved | 1 |
+| Level gate off | 1 |
+
 ## 5. Known issues / gaps (after M2)
 1. **No customer or employee actors yet**, so actor–actor overlap and avoidance are untested (M4/M8).
 2. **Depth sorting** uses a footprint heuristic tested at fixed probe points. Long multi-tile objects with actors on diagonal corners may still mis-sort; this needs a visual test map when real sprites arrive.
@@ -188,7 +225,12 @@ A latte made with water is rated "wrong order" with fewer stars and less money t
 24. **Payment is the base price** until M6 ratings.
 25. **Feedback words are fixed rules** (no variety or personality per archetype yet); customer `sensitivity` from the design doc is not modelled.
 26. **Tips use the reputation before the current rating is recorded** (by design: the customer doesn't know their own rating's effect).
-27. **Level gates only recipes and seeds** so far; furniture/equipment/region gates arrive with those systems (M7, M10).
+27. **Level gates recipes, seeds and furniture** (M7); equipment/region gates arrive with those systems (M10).
+28. **Furniture bonuses apply to new customers only.** Someone already in the café keeps the patience they arrived with (by design: no mid-visit changes).
+29. **No wall decor and no rugs yet.** Everything stands on the floor; there is no "hang on wall" or "under other furniture" layer.
+30. **Chairs don't need a table.** A chair alone in a corner is a seat like any other; table adjacency could become a comfort rule later.
+31. **The café HUD's "Lượng khách ×…" is the reputation part only;** the decorate panel shows the decor part. The real interval uses both.
+32. **Decorating doesn't pause the café.** Customers keep arriving and patience keeps running while the player decorates (intended: decorating gives no free time).
 
 ## 6. Planned coverage per milestone
 | Milestone | Key automated checks |
@@ -198,7 +240,7 @@ A latte made with water is rated "wrong order" with fewer stars and less money t
 | M4 | ✅ done (§3d) |
 | M5 | ✅ done (§3e) |
 | M6 | ✅ done (§3f) |
-| M7 | Placement validation; nav rebuild; furniture bonus applied; persistence |
+| M7 | ✅ done (§3g) |
 | M8 | Employees use real tasks (inventory changes match work done) |
 | M9 | Each story scene completable only through its objectives |
 | M11 | Save round-trip equality; migration v1→v2; corrupt save handling; reload does not duplicate rewards |

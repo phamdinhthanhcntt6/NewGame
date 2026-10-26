@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { FakeClock } from '../../src/core/Clock';
 import { MemoryStorage, SaveService } from '../../src/gameplay/state/SaveService';
+import { SAVE_SCHEMA_VERSION } from '../../src/gameplay/state/GameState';
 import type { GameSimulation } from '../../src/gameplay/GameSimulation';
 import { farmSim, runUntil } from './helpers';
 
@@ -127,14 +128,16 @@ describe('save / load', () => {
     delete v1.processing;
     delete v1.market;
     delete v1.cafe;
+    delete v1.decor;
     v1.schemaVersion = 1;
     storage.set('tcss.save.slot1', JSON.stringify(v1));
     const r = new SaveService(storage).load(clock.now());
     expect(r).toMatchObject({ status: 'ok', migratedFrom: 1 });
     if (r.status !== 'ok') return;
-    expect(r.state.schemaVersion).toBe(3);
+    expect(r.state.schemaVersion).toBe(SAVE_SCHEMA_VERSION);
     expect(r.state.processing).toEqual({ equipment: {}, selectedRecipe: {} });
     expect(r.state.cafe).toEqual({ ratings: [], feedback: [], stats: { served: 0, failed: 0 } });
+    expect(r.state.decor).toEqual({ layouts: {}, nextId: 1 });
     const resumed = farmSim({ state: r.state, clock }).sim;
     expect(resumed.farm.plot(P)!.phase).toBe('PLANTED');
     expect(resumed.processing.allViews().map((e) => e.id).sort()).toEqual(['drying_rack_1', 'drying_rack_2', 'roaster']);

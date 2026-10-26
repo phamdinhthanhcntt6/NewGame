@@ -524,5 +524,49 @@
         }
       ]
     }
+  },
+  "armchair": {
+    "label": "Armchair",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": false,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        {
+          "id": "serve",
+          "label": "Serve",
+          "durationMs": 400,
+          "handler": "cafe.serve",
+          "params": {}
+        }
+      ]
+    }
+  },
+  "cafe_table_long": {
+    "label": "Long table",
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
+    "blocking": true
+  },
+  "floor_lamp": {
+    "label": "Lamp",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": true
+  },
+  "bookshelf": {
+    "label": "Bookshelf",
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
+    "blocking": true
   }
 }

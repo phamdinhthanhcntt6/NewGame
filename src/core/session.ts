@@ -57,7 +57,7 @@ export class Autosave {
   ) {
     const bus = session.sim.bus;
     const mark = () => (this.dirty = true);
-    this.offs.push(bus.on('economy:transaction', mark), bus.on('farm:plotChanged', mark), bus.on('farm:canChanged', mark), bus.on('farm:seedSelected', mark), bus.on('move:arrived', mark));
+    this.offs.push(bus.on('economy:transaction', mark), bus.on('farm:plotChanged', mark), bus.on('farm:canChanged', mark), bus.on('farm:seedSelected', mark), bus.on('move:arrived', mark), bus.on('decor:changed', mark));
   }
 
   /** Call every frame with a monotonic time. */

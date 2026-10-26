@@ -19,8 +19,8 @@
 | **M4** | Customer AI & orders | **Done 2026-10-26** | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
 | **M5** | Brewing mini-game & serving | **Done 2026-10-26** | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
 | **M6** | Ratings, economy, progression | **Done 2026-10-27** | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
-| M7 | Furniture & decoration | Next | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
-| M8 | Employees | — | Barista/Cashier/Server/Farm worker with task assignment + FSM, using the same interaction system as the player |
+| **M7** | Furniture & decoration | **Done 2026-10-27** | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
+| M8 | Employees | Next | Barista/Cashier/Server/Farm worker with task assignment + FSM, using the same interaction system as the player |
 | M9 | Playable rebirth story | — | Scenes 03/04/05 with click-to-move objectives (no joystick), tutorial uses M5 brewing |
 | M10 | World map, quests, expansion | — | Locations, districts, branches, quests, achievements, skills, recipe unlocks (placeholder UI) |
 | M11 | Save/load robustness | — | Versioned saves, migration, corruption handling, no duplicates from reload |
@@ -97,3 +97,17 @@
 - **Delivered:** GAMEPLAY_SYSTEMS §22–§24. Save schema **v3** (reputation + feedback history) with a v2→v3 migration.
 - **Totals:** 153 unit + 25 E2E tests; all 10 mutation checks caught (one only after adding the missing "slow service lowers the score" test).
 - **M7 unblocked:** yes. Coins now flow at quality-dependent rates; furniture can feed "comfort" into ratings and seats into café capacity.
+
+## M7 report (2026-10-27)
+- **Playable flow (café):**
+  1. Click **"Trang trí quán"** (bottom left). The decorate panel replaces the café panel and the decoratable floor turns into a green grid. The player stops; world clicks now edit the room instead of walking.
+  2. **Buy** furniture in the panel (coins → the piece goes into the shared bag). Armchair, long table and lamp unlock at level 2, the bookshelf at 3.
+  3. Press **"Đặt (n)"**, then point at the floor: a **green ghost** means it fits; a **red ghost** says why not (outside the area, overlapping, queue/door tile, someone standing there, would block a path). Click to place. **R** rotates (2×1 pieces turn sideways).
+  4. Click any placed piece, including the starting tables, chairs and plants, to **move** it (the ghost follows; click to drop) or **"Cất vào kho"** to put it back in the bag.
+  5. Esc / right click drops the selection, then leaves the mode; **"Xong"** leaves it too.
+  6. Effects are immediate: customers who are walking re-plan around new furniture; a new chair is a new seat; **comfort** (♥) makes new customers more patient and **decor** (✿) brings customers more often. The panel shows the current scores and percentages.
+- **Evidence:** [decorate mode: armchairs and lamps placed, rotated bookshelf ghost, bonuses](screenshots/m7-decor.png)
+- **Delivered:** GAMEPLAY_SYSTEMS §25–§27. Save schema **v4** (furniture layout per map) with a v3→v4 migration.
+- **Built in parallel with M6** in a separate worktree (`D:\NewGame-m7`, branch `m7-furniture`), then rebased onto the M6 commit. The dev server and E2E port are now configurable (`TCSS_PORT`, default 5180) so two checkouts never test each other's server.
+- **Totals:** 185 unit + 27 E2E tests; all 12 mutation checks caught.
+- **M8 unblocked:** yes. Employees can reuse seats and approach rules unchanged; furniture changes emit `decor:changed`, which any new walker must answer with a re-plan (see GAMEPLAY_SYSTEMS §26).

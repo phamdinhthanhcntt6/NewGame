@@ -8,6 +8,7 @@ import type { ActorView } from '../components/render/WorldRenderer';
 import { PlotPresenter } from '../components/presenters/PlotPresenter';
 import { EquipmentPresenter } from '../components/presenters/EquipmentPresenter';
 import { CustomerPresenter } from '../components/presenters/CustomerPresenter';
+import { DecorPresenter } from '../components/presenters/DecorPresenter';
 import { FeedbackPresenter } from '../ui/FeedbackPresenter';
 import { installTestBridge } from '../core/testBridge';
 import { screenToWorld, worldToScreen } from '../utils/iso';
@@ -36,6 +37,7 @@ export class WorldScene extends Phaser.Scene {
   private plots!: PlotPresenter;
   private equipment!: EquipmentPresenter;
   private customers: CustomerPresenter | null = null;
+  private decor: DecorPresenter | null = null;
   private travelling = false;
   /** Set by the travel event; performed at the start of the next frame, never mid-tick. */
   private pendingTravel: string | null = null;
@@ -86,6 +88,13 @@ export class WorldScene extends Phaser.Scene {
     this.plots = new PlotPresenter(this.worldRenderer, CONTENT.seeds);
     this.equipment = new EquipmentPresenter(this.worldRenderer);
     if (this.sim.cafe) this.customers = new CustomerPresenter(this.worldRenderer, CONTENT.recipes);
+    this.decor = this.sim.decor.available
+      ? new DecorPresenter(this.sim.bus, world, this.worldRenderer, (type) => CONTENT.items[CONTENT.furniture.catalog[type]?.itemId ?? '']?.label ?? type, (id) => {
+          if (this.hoveredObject !== id) return;
+          this.worldRenderer.setObjectHighlight('', false);
+          this.hoveredObject = null;
+        })
+      : null;
 
     // Travel: commit state with the destination, then rebuild the world from the save.
     this.sim.bus.on('world:travelRequested', ({ map }) => {
@@ -96,12 +105,19 @@ export class WorldScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.rightButtonDown()) return this.sim.cancel();
       const target = this.pointerTarget(p);
+      if (this.sim.decor.isActive) {
+        // Decorating: a selected piece goes onto the floor tile under the pointer; otherwise pick up what is clicked.
+        if (!this.sim.decor.hasSelection && target.objectId) this.sim.clickObject(target.objectId);
+        else this.sim.clickTile(target.tile);
+        return;
+      }
       if (target.customerId) this.sim.clickCustomer(target.customerId);
       else if (target.objectId) this.sim.clickObject(target.objectId);
       else this.sim.clickTile(target.tile);
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.updateHover(this.pointerTarget(p)));
     this.input.keyboard?.on('keydown-ESC', () => this.sim.cancel());
+    this.input.keyboard?.on('keydown-R', () => this.sim.decor.isActive && this.sim.decor.rotate());
 
     // Persist when the tab is hidden or closed (best effort; autosave covers the rest).
     const flush = () => this.autosave.saveNow();
@@ -116,6 +132,8 @@ export class WorldScene extends Phaser.Scene {
       if (!this.travelling) flush(); // travel already saved with the destination map
       this.customers?.destroy();
       this.customers = null;
+      this.decor?.destroy();
+      this.decor = null;
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flush);
       this.autosave.destroy();
@@ -129,6 +147,8 @@ export class WorldScene extends Phaser.Scene {
     if (this.travelling) return;
     if (this.pendingTravel) return this.travel(this.pendingTravel);
     this.sim.tick(delta);
+    // Decorating: follow the pointer every frame (Phaser can drop the first move after a HUD click).
+    if (this.sim.decor.isActive) this.updateHover(this.pointerTarget(this.input.activePointer));
     const s = this.sim.snapshot();
     const cur = s.interaction.current;
     this.playerView.update({
@@ -143,6 +163,7 @@ export class WorldScene extends Phaser.Scene {
     this.plots.sync(s.farm.plots);
     this.equipment.sync(s.processing.equipment);
     if (s.cafe) this.customers?.sync(s.cafe.customers);
+    this.decor?.sync(s.decor);
     this.autosave.update(time);
   }
 
@@ -194,13 +215,18 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private updateHover(target: { customerId: string | null; objectId: string | null; tile: TilePos }): void {
+    const decor = this.sim.decor;
+    if (decor.isActive) decor.hover(this.sim.world.grid.inBounds(target.tile) ? target.tile : null);
     const obj = target.objectId ? this.sim.world.getObject(target.objectId) : undefined;
-    const id = obj?.def.interaction ? obj.id : null;
+    // Decorating highlights what can be picked up; otherwise what can be used.
+    const pickable = decor.isActive ? !decor.hasSelection && !!obj && decor.isFurniture(obj.id) : !!obj?.def.interaction;
+    const id = pickable ? obj!.id : null;
     if (id !== this.hoveredObject) {
       this.worldRenderer.setObjectHighlight(id ?? '', id !== null);
       this.hoveredObject = id;
     }
-    this.worldRenderer.setHoverTile(!obj && this.sim.world.grid.inBounds(target.tile) ? target.tile : null);
+    const ghost = decor.isActive && decor.hasSelection; // the ghost already marks the tile
+    this.worldRenderer.setHoverTile(!obj && !ghost && this.sim.world.grid.inBounds(target.tile) ? target.tile : null);
   }
 }
 

@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { actorDepth, floorDepth, footprintDepth, worldToScreen, type ScreenPos } from '../../utils/iso';
 import type { Footprint, TilePos, WorldPos } from '../../utils/tile';
 import { DEFAULT_STYLE, FEEDBACK_COLORS, PLACEHOLDER_STYLES, PLACEHOLDER_VARIANTS, PLAYER_COLOR, TERRAIN_COLORS } from './placeholderStyles';
-import type { ActorView, ActorViewState, FeedbackKind, FloorTileView, ObjectViewData, ObjectVisual, WorldRenderer } from './WorldRenderer';
+import type { ActorView, ActorViewState, FeedbackKind, FloorTileView, ObjectViewData, ObjectVisual, PlacementPreview, WorldRenderer } from './WorldRenderer';
 
 const shade = (c: number, f: number): number => {
   const r = Math.min(255, Math.round(((c >> 16) & 0xff) * f));
@@ -115,12 +115,24 @@ export class PlaceholderRenderer implements WorldRenderer {
   private readonly highlight: Phaser.GameObjects.Graphics;
   private readonly path: Phaser.GameObjects.Graphics;
   private readonly hover: Phaser.GameObjects.Graphics;
+  private readonly decorArea: Phaser.GameObjects.Graphics;
+  private readonly ghost: Phaser.GameObjects.Graphics;
+  private readonly ghostLabel: Phaser.GameObjects.Text;
+  private ghostKey = '';
   private bounds = { w: 1, h: 1 };
 
   constructor(private readonly scene: Phaser.Scene) {
     this.path = scene.add.graphics().setDepth(floorDepth + 2);
     this.hover = scene.add.graphics().setDepth(floorDepth + 1);
     this.highlight = scene.add.graphics().setDepth(1e6);
+    this.decorArea = scene.add.graphics().setDepth(floorDepth + 0.5);
+    // The ghost is drawn over everything so it is never hidden behind the object it collides with.
+    this.ghost = scene.add.graphics().setDepth(1e6 - 1).setAlpha(0.6);
+    this.ghostLabel = scene.add
+      .text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff', padding: { x: 4, y: 2 } })
+      .setOrigin(0.5, 1)
+      .setDepth(1e6 - 1)
+      .setVisible(false);
   }
 
   buildWorld(floor: FloorTileView[], objects: ObjectViewData[]): void {
@@ -260,6 +272,35 @@ export class PlaceholderRenderer implements WorldRenderer {
       .setOrigin(0.5, 1)
       .setDepth(1e6 + 1);
     this.scene.tweens.add({ targets: t, y: t.y - 24, alpha: 0, delay: 600, duration: 500, onComplete: () => t.destroy() });
+  }
+
+  setDecorArea(area: Footprint[] | null): void {
+    this.decorArea.clear();
+    if (!area) return;
+    this.decorArea.lineStyle(1, 0x3c9d4a, 0.9);
+    for (const a of area) {
+      for (let y = a.y; y < a.y + a.h; y++) {
+        for (let x = a.x; x < a.x + a.w; x++) {
+          const pts = [worldToScreen({ x, y }), worldToScreen({ x: x + 1, y }), worldToScreen({ x: x + 1, y: y + 1 }), worldToScreen({ x, y: y + 1 })];
+          this.decorArea.fillStyle(0x6db55a, 0.16).fillPoints(pts.map((p) => v(p)), true);
+          this.decorArea.strokePoints(pts.map((p) => v(p)), true);
+        }
+      }
+    }
+  }
+
+  setPlacementPreview(preview: PlacementPreview | null): void {
+    const key = preview ? `${preview.footprint.x},${preview.footprint.y},${preview.footprint.w},${preview.footprint.h},${preview.valid},${preview.label}` : '';
+    if (key === this.ghostKey) return;
+    this.ghostKey = key;
+    this.ghost.clear();
+    this.ghostLabel.setVisible(preview !== null);
+    if (!preview) return;
+    const color = preview.valid ? 0x6db55a : 0xc8463d;
+    drawBox(this.ghost, preview.footprint, color, 18);
+    const f = preview.footprint;
+    const c = worldToScreen({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
+    this.ghostLabel.setText(preview.label).setBackgroundColor(preview.valid ? '#3c9d4a' : '#c8463d').setPosition(c.x, c.y - 24);
   }
 
   frame(widthTiles: number, heightTiles: number, insetRight = this.insetRight): void {

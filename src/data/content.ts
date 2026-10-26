@@ -10,6 +10,7 @@ import customers from './config/customers.json';
 import cafeMap from './maps/cafe.json';
 import brewing from './config/brewing.json';
 import progression from './config/progression.json';
+import furniture from './config/furniture.json';
 import farmMap from './maps/farm.json';
 import sandboxMap from './maps/sandbox.json';
 import type { GameplayConfig } from '../gameplay/GameSimulation';
@@ -24,6 +25,7 @@ import type { CustomerConfig } from '../gameplay/cafe/CafeService';
 import type { BrewingConfig, BrewStep } from '../gameplay/cafe/BrewingService';
 import type { RatingConfig } from '../gameplay/cafe/RatingService';
 import type { ProgressionConfig } from '../gameplay/progression/ProgressionService';
+import type { FurnitureConfig } from '../gameplay/decor/FurnitureService';
 
 export interface EconomyConfig {
   startingCoins: number;
@@ -48,6 +50,7 @@ export interface GameContent {
   brewing: BrewingConfig;
   progression: RatingConfig & ProgressionConfig;
   maps: Record<string, MapData>;
+  furniture: FurnitureConfig;
 }
 
 export function validateContent(c: GameContent): string[] {
@@ -104,6 +107,15 @@ export function validateContent(c: GameContent): string[] {
   if (!Object.values(pr.recipeUnlockLevel).some((l) => l <= 1)) p.push('at least one recipe must be available at level 1');
   const levels = c.economy.farm.soilLevels.map((l) => l.level);
   if (levels[0] !== 1 || levels.some((l, i) => l !== i + 1)) p.push('soilLevels must be 1..n in order');
+  for (const [type, f] of Object.entries(c.furniture.catalog)) {
+    const def = c.objectTypes[type];
+    if (!def) p.push(`furniture ${type}: no object type`);
+    if (c.items[f.itemId]?.category !== 'furniture') p.push(`furniture ${type}: item ${f.itemId} must exist with category "furniture"`);
+    if (!(f.price > 0 && f.comfort >= 0 && f.decor >= 0)) p.push(`furniture ${type}: price must be > 0, comfort/decor ≥ 0`);
+    if (!(Number.isInteger(f.unlockLevel) && f.unlockLevel >= 1)) p.push(`furniture ${type}: unlockLevel must be an integer ≥ 1`);
+    // A non-blocking piece people use must be a seat (customers sit on it, the player serves there).
+    if (def && !def.blocking && !def.interaction?.actions.some((a) => a.handler === 'cafe.serve')) p.push(`furniture ${type}: non-blocking furniture must be a seat`);
+  }
   return p;
 }
 
@@ -120,6 +132,7 @@ export const CONTENT: GameContent = {
   brewing: brewing as BrewingConfig,
   progression: progression as RatingConfig & ProgressionConfig,
   maps: { farm: farmMap as MapData, cafe: cafeMap as MapData, sandbox: sandboxMap as MapData },
+  furniture: furniture as FurnitureConfig,
 };
 
 const problems = validateContent(CONTENT);

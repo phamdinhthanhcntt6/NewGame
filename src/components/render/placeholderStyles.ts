@@ -35,6 +35,10 @@ export const PLACEHOLDER_STYLES: Record<string, PlaceholderStyle> = {
   supply_shelf: { color: 0x7a5c3e, height: 56 },
   standing_spot: { color: 0xd9c3a0, height: 1 },
   tree: { color: 0x2f6b34, height: 72 },
+  armchair: { color: 0x9e4f5c, height: 14 },
+  cafe_table_long: { color: 0x7a4e26, height: 22 },
+  floor_lamp: { color: 0xf2d16b, height: 58 },
+  bookshelf: { color: 0x5e3b22, height: 60 },
 };
 
 /** Per-variant overrides (ObjectVisual.variant), e.g. plot states. */

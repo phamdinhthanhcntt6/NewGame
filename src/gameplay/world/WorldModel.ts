@@ -50,6 +50,9 @@ export function validateMap(map: MapData, types: ObjectTypeTable): string[] {
       if (a.durationMs < 0) problems.push(`action "${o.type}.${a.id}" has negative duration`);
     }
   }
+  (map.decor?.area ?? []).forEach((a, i) => {
+    if (a.x < 0 || a.y < 0 || a.w < 1 || a.h < 1 || a.x + a.w > width || a.y + a.h > height) problems.push(`decor.area[${i}] is out of bounds`);
+  });
   const s = map.playerStart;
   if (s.x < 0 || s.y < 0 || s.x >= width || s.y >= height) problems.push('playerStart is out of bounds');
   return problems;
@@ -67,7 +70,7 @@ export class WorldModel {
 
   constructor(
     readonly map: MapData,
-    private readonly types: ObjectTypeTable,
+    readonly types: ObjectTypeTable,
   ) {
     const problems = validateMap(map, types);
     if (problems.length) throw new MapValidationError(problems);

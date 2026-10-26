@@ -28,6 +28,9 @@ Positions in these contracts are **world tile units**. Converting them to pixels
 ### Object visual states (M2+)
 `setObjectVisual(id, { variant, caption?, progress? })` carries a *semantic* state. Map each `type × variant` to frames. For `farm_plot` the variants are `locked`, `empty`, `prepared`, `thirsty`, `growing_0`…`growing_3`, `ready`, `harvested` (these are the ART_BIBLE crop stages plus soil states). Captions and progress bars are placeholder UI; a production renderer may hide captions and show icons instead. Variants are produced by presenters (`src/components/presenters/`), never by gameplay code.
 
+### Decorate mode (M7)
+`setDecorArea(area | null)` and `setPlacementPreview({ footprint, valid, label } | null)` draw the placement grid and the ghost. A production renderer would show the real sprite of the piece (rotated), tinted green or red. New placeable types: `armchair`, `cafe_table_long` (2×1), `floor_lamp`, `bookshelf` (2×1). Placeable art needs 4 rotations (ASSET_MANIFEST F-04).
+
 ## 3. Swapping UI
 - `DebugPanel` and `FeedbackPresenter` read snapshots and events only. A production HUD subscribes to the same events and snapshots.
 - All strings come from `t(key)` and `data/locales/*.json`.

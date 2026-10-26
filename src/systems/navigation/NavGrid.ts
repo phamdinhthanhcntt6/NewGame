@@ -57,6 +57,14 @@ export class NavGrid {
     this.version++;
   }
 
+  /** Independent copy, for "what if" checks (e.g. furniture placement) that must not touch the live grid. */
+  clone(): NavGrid {
+    const g = new NavGrid(this.width, this.height);
+    g.terrainBlocked.set(this.terrainBlocked);
+    g.occupancy.set(this.occupancy);
+    return g;
+  }
+
   /** True when every tile of the footprint is in bounds and walkable. */
   isAreaFree(f: Footprint): boolean {
     for (const t of footprintTiles(f)) if (!this.isWalkable(t)) return false;
