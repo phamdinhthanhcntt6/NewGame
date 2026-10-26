@@ -40,7 +40,8 @@ export interface Order {
 export const ORDER_TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
   CREATED: ['ACCEPTED', 'CANCELLED'],
   ACCEPTED: ['PREPARING', 'FAILED', 'CANCELLED'],
-  PREPARING: ['READY', 'FAILED', 'CANCELLED'],
+  // PREPARING → ACCEPTED: the barista abandoned the drink; the order waits to be brewed again.
+  PREPARING: ['READY', 'ACCEPTED', 'FAILED', 'CANCELLED'],
   READY: ['SERVED', 'FAILED', 'CANCELLED'],
   SERVED: ['COMPLETED'],
   COMPLETED: [],

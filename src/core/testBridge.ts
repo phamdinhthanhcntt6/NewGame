@@ -19,7 +19,9 @@ export interface TestBridge {
   /** Tile under page coordinates, via the same path the game's input uses. */
   clientToTile(x: number, y: number): TilePos;
   /** What a click at page coordinates would target (object first, then tile). */
-  clientToTarget(x: number, y: number): { objectId: string | null; tile: TilePos };
+  clientToTarget(x: number, y: number): { customerId: string | null; objectId: string | null; tile: TilePos };
+  /** Page coordinates of a customer's body. */
+  customerClickClient(id: string): { x: number; y: number } | null;
   /** Page coordinates of an object's visible top/label — where a player would click. */
   objectClickClient(id: string): { x: number; y: number } | null;
   objectTiles(id: string): TilePos[];
@@ -33,7 +35,7 @@ export interface TestBridge {
   /** Dev-only cheat for UI-focused tests: grants items through the TransactionService (reason "debug:grant"). */
   grantItems(itemId: string, qty: number, quality?: number): boolean;
   /** Café only: spawn a customer now / turn the automatic spawner on or off. */
-  spawnCustomer(archetype?: string): string | null;
+  spawnCustomer(archetype?: string, recipeId?: string): string | null;
   setCafeOpen(open: boolean): void;
 }
 
@@ -47,7 +49,7 @@ export function installTestBridge(scene: WorldScene): void {
   if (import.meta.env.PROD) return;
   const log: Array<{ type: string; payload: unknown }> = [];
   const bus = scene.sim.bus;
-  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected', 'order:changed', 'customer:spawned', 'customer:left', 'customer:removed', 'world:travelRequested'] as const) {
+  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected', 'order:changed', 'customer:spawned', 'customer:left', 'customer:removed', 'world:travelRequested', 'brew:started', 'brew:finished', 'brew:aborted', 'cafe:paid'] as const) {
     bus.on(type, (payload) => log.push({ type, payload }));
   }
   const canvasRect = () => scene.game.canvas.getBoundingClientRect();
@@ -69,6 +71,10 @@ export function installTestBridge(scene: WorldScene): void {
     },
     clientToTile: (x, y) => scene.pointerTile(clientToCanvas(x, y)),
     clientToTarget: (x, y) => scene.pointerTarget(clientToCanvas(x, y)),
+    customerClickClient: (id) => {
+      const p = scene.customerClickPoint(id);
+      return p ? renderToClient(p.x, p.y) : null;
+    },
     objectClickClient: (id) => {
       const p = scene.objectClickPoint(id);
       return p ? renderToClient(p.x, p.y) : null;
@@ -99,7 +105,7 @@ export function installTestBridge(scene: WorldScene): void {
       return { x: r.left + (bounds.centerX * r.width) / scene.scale.width, y: r.top + (bounds.centerY * r.height) / scene.scale.height, enabled: b.isEnabled };
     },
     saveNow: () => scene.autosave.saveNow(),
-    spawnCustomer: (archetype) => scene.sim.cafe?.spawn(archetype).id ?? null,
+    spawnCustomer: (archetype, recipeId) => scene.sim.cafe?.spawn(archetype, recipeId).id ?? null,
     setCafeOpen: (open) => {
       if (scene.sim.cafe) scene.sim.cafe.open = open;
     },

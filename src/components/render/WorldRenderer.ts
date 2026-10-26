@@ -48,6 +48,10 @@ export interface ObjectVisual {
 
 export interface ActorView {
   update(s: ActorViewState): void;
+  /** True when a render-space point lies on the drawn character. */
+  hitTest(px: number, py: number): boolean;
+  /** Painter depth, so the front-most character wins a click. */
+  readonly depth: number;
   destroy(): void;
 }
 

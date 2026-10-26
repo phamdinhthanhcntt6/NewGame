@@ -11,11 +11,13 @@ import { worldToTile, type TilePos, type WorldPos } from '../utils/tile';
 export type ActorState = 'IDLE' | 'MOVING' | 'INTERACTING' | 'WORKING' | 'CARRYING';
 
 export const ACTOR_TRANSITIONS: Record<ActorState, readonly ActorState[]> = {
-  IDLE: ['MOVING', 'INTERACTING'],
+  // IDLE ⇄ CARRYING: an item can appear in or leave the hands while standing
+  // (e.g. a drink finished by the brewing panel, or discarded when its order ends).
+  IDLE: ['MOVING', 'INTERACTING', 'CARRYING'],
   MOVING: ['IDLE', 'CARRYING', 'INTERACTING'],
   INTERACTING: ['WORKING', 'IDLE', 'CARRYING', 'MOVING'],
   WORKING: ['IDLE', 'CARRYING', 'MOVING'],
-  CARRYING: ['MOVING', 'INTERACTING'],
+  CARRYING: ['MOVING', 'INTERACTING', 'IDLE'],
 };
 
 export type Facing = 'N' | 'NE' | 'E' | 'SE' | 'S' | 'SW' | 'W' | 'NW';
@@ -63,6 +65,11 @@ export class Actor {
 
   get tile(): TilePos {
     return worldToTile(this.pos);
+  }
+
+  /** After the held item changed outside an interaction: re-derive the resting state if standing still. */
+  syncRestState(): void {
+    if (this.fsm.is('IDLE', 'CARRYING')) this.fsm.transition(this.restState());
   }
 
   /** The state an actor returns to when it has nothing to do. */

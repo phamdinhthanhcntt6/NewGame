@@ -5,7 +5,7 @@ import type { GameSession } from '../core/session';
 import { DebugPanel } from '../ui/DebugPanel';
 import { FarmHud } from '../ui/FarmHud';
 import { StationHud, type StationUiCommands } from '../ui/StationHud';
-import { CafeHud } from '../ui/CafeHud';
+import { CafeHud, type CafeUiCommands } from '../ui/CafeHud';
 import type { Button } from '../ui/widgets/Button';
 
 /** UI overlay with its own un-zoomed camera, running on top of a world scene. */
@@ -26,7 +26,7 @@ export class HudScene extends Phaser.Scene {
 
   /** Any named HUD button (test bridge lookup). */
   button(name: string): Button | undefined {
-    return this.farmHud?.buttons.get(name) ?? this.stationHud?.buttons.get(name);
+    return this.farmHud?.buttons.get(name) ?? this.stationHud?.buttons.get(name) ?? this.cafeHud?.buttons.get(name);
   }
 
   create(): void {
@@ -34,7 +34,17 @@ export class HudScene extends Phaser.Scene {
     this.farmHud = this.stationHud = this.cafeHud = null;
     const sim = this.session.sim;
     this.panel = new DebugPanel(this, sim.bus);
-    if (sim.cafe) this.cafeHud = new CafeHud(this, CONTENT.recipes, CONTENT.items);
+    if (sim.cafe) {
+      const cafe: CafeUiCommands = {
+        chooseBean: (id) => sim.brewing.chooseBean(id),
+        chooseAddition: (id) => sim.brewing.chooseAddition(id),
+        press: () => sim.brewing.press(),
+        cancelBrew: () => sim.brewing.cancel(),
+        buySupply: (id, qty) => sim.supplies.buy(id, qty),
+      };
+      this.cafeHud = new CafeHud(this, cafe, CONTENT.recipes, CONTENT.items, CONTENT.brewing);
+      this.input.keyboard?.on('keydown-SPACE', () => this.cafeHud?.pressShortcut());
+    }
     else if (sim.farm.allPlotViews().length > 0) {
       this.farmHud = new FarmHud(this, sim.bus, sim.farm, CONTENT.seeds);
       const station: StationUiCommands = {
@@ -63,6 +73,7 @@ export class HudScene extends Phaser.Scene {
       this.stationHud?.destroy();
       this.cafeHud?.destroy();
       this.farmHud = this.stationHud = this.cafeHud = null;
+      this.input.keyboard?.off('keydown-SPACE');
     });
   }
 

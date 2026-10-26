@@ -8,6 +8,7 @@ import seeds from './config/seeds.json';
 import recipes from './config/recipes.json';
 import customers from './config/customers.json';
 import cafeMap from './maps/cafe.json';
+import brewing from './config/brewing.json';
 import farmMap from './maps/farm.json';
 import sandboxMap from './maps/sandbox.json';
 import type { GameplayConfig } from '../gameplay/GameSimulation';
@@ -19,6 +20,7 @@ import type { ProcessingConfig } from '../gameplay/processing/ProcessingService'
 import type { MarketConfig } from '../gameplay/market/MarketService';
 import type { RecipeTable } from '../gameplay/cafe/OrderService';
 import type { CustomerConfig } from '../gameplay/cafe/CafeService';
+import type { BrewingConfig, BrewStep } from '../gameplay/cafe/BrewingService';
 
 export interface EconomyConfig {
   startingCoins: number;
@@ -40,6 +42,7 @@ export interface GameContent {
   market: MarketConfig;
   recipes: RecipeTable;
   customers: CustomerConfig;
+  brewing: BrewingConfig;
   maps: Record<string, MapData>;
 }
 
@@ -73,6 +76,14 @@ export function validateContent(c: GameContent): string[] {
       if (ing.category && !Object.values(c.items).some((it) => it.category === ing.category)) p.push(`recipe ${id}: no items in category ${ing.category}`);
     }
     if (!c.items[r.preferredBean]) p.push(`recipe ${id}: unknown preferredBean`);
+    const steps = (r as unknown as { steps?: BrewStep[] }).steps ?? [];
+    if (steps.length === 0) p.push(`recipe ${id}: no brewing steps`);
+    if (steps[0]?.kind !== 'choose_bean') p.push(`recipe ${id}: first step must choose the bean`);
+    for (const s of steps) {
+      if (!Object.values(c.objectTypes).length || !c.objectTypes[s.station]) p.push(`recipe ${id}: step ${s.id} uses unknown station ${s.station}`);
+      if (s.kind === 'choose_addition' && !c.brewing.additions[s.correct]) p.push(`recipe ${id}: unknown addition ${s.correct}`);
+      if (s.kind === 'timing' && !(s.target >= 0 && s.target <= 1 && s.tolerance > 0 && s.periodMs > 0)) p.push(`recipe ${id}: bad timing step ${s.id}`);
+    }
   }
   for (const [k, a] of Object.entries(c.customers.archetypes)) {
     for (const rid of Object.keys(a.preferences)) if (!c.recipes[rid]) p.push(`customer ${k}: unknown recipe ${rid}`);
@@ -93,6 +104,7 @@ export const CONTENT: GameContent = {
   market: market as MarketConfig,
   recipes: recipes as RecipeTable,
   customers: customers as CustomerConfig,
+  brewing: brewing as BrewingConfig,
   maps: { farm: farmMap as MapData, cafe: cafeMap as MapData, sandbox: sandboxMap as MapData },
 };
 

@@ -44,6 +44,13 @@ export class CustomerPresenter {
     }
   }
 
+  /** Front-most customer drawn under a render-space point. */
+  customerAtPoint(px: number, py: number): string | null {
+    let best: { id: string; depth: number } | null = null;
+    for (const [id, v] of this.views) if (v.hitTest(px, py) && (!best || v.depth > best.depth)) best = { id, depth: v.depth };
+    return best?.id ?? null;
+  }
+
   destroy(): void {
     for (const v of this.views.values()) v.destroy();
     this.views.clear();

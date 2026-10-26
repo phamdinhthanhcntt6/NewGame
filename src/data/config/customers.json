@@ -12,7 +12,8 @@
     "maxRepaths": 3,
     "tastingMs": 2500,
     "ratingMs": 1500,
-    "orderingMs": 600
+    "orderingMs": 600,
+    "receivingMs": 600
   },
   "archetypes": {
     "student": {
@@ -21,7 +22,11 @@
       "speedTilesPerSec": 2.4,
       "orderPatienceMs": 45000,
       "drinkPatienceMs": 120000,
-      "preferences": { "vn_milk_coffee": 3, "americano": 1, "espresso": 1 }
+      "preferences": {
+        "vn_milk_coffee": 3,
+        "americano": 1,
+        "espresso": 1
+      }
     },
     "office": {
       "label": "Dân văn phòng",
@@ -29,7 +34,11 @@
       "speedTilesPerSec": 3,
       "orderPatienceMs": 30000,
       "drinkPatienceMs": 90000,
-      "preferences": { "espresso": 2, "americano": 2, "latte": 1 }
+      "preferences": {
+        "espresso": 2,
+        "americano": 2,
+        "latte": 1
+      }
     },
     "tourist": {
       "label": "Khách du lịch",
@@ -37,7 +46,11 @@
       "speedTilesPerSec": 1.9,
       "orderPatienceMs": 60000,
       "drinkPatienceMs": 150000,
-      "preferences": { "latte": 2, "cappuccino": 2, "vn_milk_coffee": 2 }
+      "preferences": {
+        "latte": 2,
+        "cappuccino": 2,
+        "vn_milk_coffee": 2
+      }
     }
   }
 }

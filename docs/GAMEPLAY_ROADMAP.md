@@ -17,8 +17,8 @@
 | **M2** | Full farming loop | **Done 2026-10-26** | Plot FSM `EMPTY→PREPARED→PLANTED→GROWING→READY→HARVESTED`; locked land + purchase; soil upgrades; seed shop; watering can + well; timestamp growth that survives reload; harvest → inventory exactly once; central TransactionService; versioned localStorage save. 78 unit + 13 E2E tests pass |
 | **M3** | Processing, selling, shared inventory | **Done 2026-10-26** | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
 | **M4** | Customer AI & orders | **Done 2026-10-26** | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
-| M5 | Brewing mini-game & serving | Next | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
-| M6 | Ratings, economy, progression | — | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
+| **M5** | Brewing mini-game & serving | **Done 2026-10-26** | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
+| M6 | Ratings, economy, progression | Next | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
 | M7 | Furniture & decoration | — | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
 | M8 | Employees | — | Barista/Cashier/Server/Farm worker with task assignment + FSM, using the same interaction system as the player |
 | M9 | Playable rebirth story | — | Scenes 03/04/05 with click-to-move objectives (no joystick), tutorial uses M5 brewing |
@@ -77,3 +77,16 @@
 - **Bug found by E2E and fixed:** Phaser reuses scene instances on restart, so the HUD kept a destroyed farm panel after travelling (console error). Panels are now reset on create/shutdown, and travel is deferred to the start of the next frame.
 - **Totals:** 118 unit + 20 E2E tests; 7 more mutation checks caught.
 - **M5 unblocked:** yes. Orders carry recipe, ingredients, time limit, expected quality and reward. `CafeService` has the RECEIVING → TASTING → RATING states ready for serving.
+
+## M5 report (2026-10-26)
+- **Playable flow (café):**
+  1. Buy milk / condensed milk at the **supply shelf**; bring roasted beans from the farm (shared inventory).
+  2. Take an order by clicking the counter *or the customer* standing at it.
+  3. Brew at the stations behind the counter, in order: **grinder** (choose a bean, stop the grind needle) → **espresso machine** (tamp, extract) → **milk station** (choose milk / condensed milk / water, pour). Espresso skips the milk station.
+  4. Stop each needle inside the green zone (button or **Space**). The panel shows progress, the next station, and a cancel button.
+  5. The finished drink is in your hands. Click the customer (or their seat) to serve. They taste, rate and pay, and the order becomes COMPLETED.
+- **Evidence:** [brewing panel with timing needle](screenshots/m5-brewing.png)
+- **Delivered:** GAMEPLAY_SYSTEMS §19–§21.
+- **Payment in M5 is the recipe's base price.** Quality-based ratings, tips and reputation are M6; they plug into the `RatingPolicy` hook.
+- **Totals:** 131 unit + 23 E2E tests; 7 of 8 mutation checks caught (the 8th is an equivalent mutant, see the test plan).
+- **M6 unblocked:** yes. Each drink records bean quality, recipe accuracy, per-step timing accuracy and ready time; each order records accept/serve times. Those are the inputs of the 40/25/20/15 rating.

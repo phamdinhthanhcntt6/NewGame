@@ -6,7 +6,17 @@ import { Actor } from '../../entities/Actor';
 import type { NavigationService } from '../../systems/navigation/NavigationService';
 import { sameTile, tileCenter, type TilePos, type WorldPos } from '../../utils/tile';
 import type { WorldModel } from '../world/WorldModel';
+import type { TransactionService } from '../../systems/economy/TransactionService';
+import type { Drink } from './BrewingService';
 import type { Order, OrderService } from './OrderService';
+
+/** What a served customer pays and how they rate it. M5: base reward; M6 plugs in quality ratings. */
+export interface ServiceOutcome {
+  coins: number;
+  exp: number;
+}
+export type RatingPolicy = (order: Order, drink: Drink, customer: Customer) => ServiceOutcome;
+export const baseRewardPolicy: RatingPolicy = (order) => ({ coins: order.reward.coins, exp: order.reward.exp });
 
 export type CustomerState =
   | 'SPAWNING'
@@ -52,13 +62,15 @@ export interface CustomerConfig {
     tastingMs: number;
     ratingMs: number;
     orderingMs: number;
+    receivingMs: number;
   };
   archetypes: Record<string, ArchetypeDef>;
 }
 
 interface Spot {
   key: string;
-  kind: 'seat' | 'wait';
+  kind: 'seat' | 'stand';
+  objectId: string;
   tile: TilePos;
 }
 
@@ -84,6 +96,9 @@ export interface Customer {
   leaveReason: string | null;
   satisfaction: number | null;
   gone: boolean;
+  /** The drink handed over (from RECEIVING on). */
+  drink: Drink | null;
+  outcome: ServiceOutcome | null;
 }
 
 export interface CustomerView {
@@ -134,6 +149,8 @@ export class CafeService {
     private readonly rng: Rng,
     private readonly now: () => number,
     private readonly bodyRadius: number,
+    private readonly tx: TransactionService,
+    private readonly rate: RatingPolicy = baseRewardPolicy,
   ) {
     const one = (name: string): TilePos => {
       const m = world.markers(name)[0];
@@ -145,12 +162,13 @@ export class CafeService {
     this.doorTile = one('door');
     this.orderPoint = one('orderPoint');
     this.queueTiles = world.markers('queue');
-    const seats: Spot[] = world
-      .allObjects()
-      .filter((o) => o.type === 'chair')
-      .map((o) => ({ key: `seat:${o.id}`, kind: 'seat', tile: { x: o.footprint.x, y: o.footprint.y } }));
-    const waits: Spot[] = world.markers('waitSpots').map((tile, i) => ({ key: `wait:${i}`, kind: 'wait', tile }));
-    this.spots = [...seats, ...waits];
+    const spotsOf = (type: string, kind: Spot['kind']): Spot[] =>
+      world
+        .allObjects()
+        .filter((o) => o.type === type)
+        .map((o) => ({ key: `${kind}:${o.id}`, kind, objectId: o.id, tile: { x: o.footprint.x, y: o.footprint.y } }));
+    // Seats first, then standing spots.
+    this.spots = [...spotsOf('chair', 'seat'), ...spotsOf('standing_spot', 'stand')];
     this.nextSpawnAt = now() + config.spawn.firstDelayMs;
   }
 
@@ -230,6 +248,48 @@ export class CafeService {
     return { ok: true };
   }
 
+  /** Customer who reserved the seat / standing spot object, if any. */
+  customerAtSpot(objectId: string): Customer | undefined {
+    const spot = this.spots.find((s) => s.objectId === objectId);
+    const id = spot ? this.reserved.get(spot.key) : undefined;
+    return id ? this.customers.get(id) : undefined;
+  }
+
+  /** Validate handing a drink to whoever sits at this spot. */
+  canServe(objectId: string, drink: Drink | undefined): CafeResult {
+    if (!drink) return { ok: false, reason: 'noDrink' };
+    const c = this.customerAtSpot(objectId);
+    if (!c) return { ok: false, reason: 'noCustomerHere' };
+    if (c.orderId !== drink.orderId) return { ok: false, reason: 'wrongCustomer' };
+    if (!c.fsm.is('WAITING')) return { ok: false, reason: 'notWaiting' };
+    if (c.target) return { ok: false, reason: 'notSeatedYet' };
+    if (this.orders.get(drink.orderId)?.status !== 'READY') return { ok: false, reason: 'orderNotReady' };
+    return { ok: true };
+  }
+
+  /** The customer takes the drink: order SERVED, then they taste, rate and pay. */
+  receive(objectId: string, drink: Drink): CafeResult {
+    const can = this.canServe(objectId, drink);
+    if (!can.ok) return can;
+    const c = this.customerAtSpot(objectId)!;
+    const r = this.orders.transition(drink.orderId, 'SERVED');
+    if (!r.ok) return { ok: false, reason: r.reason };
+    c.drink = drink;
+    this.setState(c, 'RECEIVING');
+    return { ok: true };
+  }
+
+  /** Pay exactly once (idempotency key) and complete the order. */
+  private settle(c: Customer): void {
+    const order = c.orderId !== null ? this.orders.get(c.orderId) : undefined;
+    if (!order || !c.drink || order.status !== 'SERVED') return;
+    const outcome = this.rate(order, c.drink, c);
+    const paid = this.tx.execute({ reason: `order:${order.id}:${order.recipeId}`, coins: outcome.coins, exp: outcome.exp, key: `order:${order.id}:paid` });
+    c.outcome = outcome;
+    this.orders.transition(order.id, 'COMPLETED');
+    if (paid.ok) this.bus.emit('cafe:paid', { orderId: order.id, coins: outcome.coins, exp: outcome.exp });
+  }
+
   // ── simulation ──────────────────────────────────────────────────────────
 
   tick(dtMs: number): void {
@@ -243,13 +303,13 @@ export class CafeService {
     for (const [id, c] of this.customers) if (c.gone) this.customers.delete(id);
   }
 
-  /** Spawn now (also used by tests and the debug bridge). */
-  spawn(archetype?: string): Customer {
+  /** Spawn now (also used by tests and the debug bridge). `recipeId` forces the order (tests/debug). */
+  spawn(archetype?: string, recipeId?: string): Customer {
     const archetypes = this.config.archetypes;
     const key = archetype && archetypes[archetype] ? archetype : this.rng.weighted(Object.fromEntries(Object.entries(archetypes).map(([k, a]) => [k, a.weight])));
     const def = archetypes[key]!;
     const recipes = Object.fromEntries(Object.entries(def.preferences).filter(([rid]) => this.orders.recipes[rid]));
-    const recipeId = this.rng.weighted(recipes);
+    const chosen = recipeId && this.orders.recipes[recipeId] ? recipeId : this.rng.weighted(recipes);
     const id = `c${this.nextId++}`;
     const now = this.now;
     const actor = new Actor(id, tileCenter(this.spawnTile), { speedTilesPerSec: def.speedTilesPerSec, bodyRadius: this.bodyRadius }, now);
@@ -259,7 +319,7 @@ export class CafeService {
       def,
       actor,
       fsm: new StateMachine<CustomerState>(`customer:${id}`, 'SPAWNING', CUSTOMER_TRANSITIONS, now),
-      recipeId,
+      recipeId: chosen,
       orderId: null,
       spot: null,
       target: null,
@@ -275,6 +335,8 @@ export class CafeService {
       leaveReason: null,
       satisfaction: null,
       gone: false,
+      drink: null,
+      outcome: null,
     };
     c.fsm.onTransition((from, to) => this.bus.emit('customer:stateChanged', { customerId: id, from, to }));
     this.customers.set(id, c);
@@ -324,11 +386,17 @@ export class CafeService {
           c.actor.faceTowards({ x: this.orderPoint.x + 0.5, y: this.orderPoint.y - 0.5 });
         }
         break;
+      case 'RECEIVING':
+        if (c.stateMs >= this.config.behaviour.receivingMs) this.setState(c, 'TASTING');
+        break;
       case 'TASTING':
         if (c.stateMs >= this.config.behaviour.tastingMs) this.setState(c, 'RATING');
         break;
       case 'RATING':
-        if (c.stateMs >= this.config.behaviour.ratingMs) this.leave(c, 'served');
+        if (c.stateMs >= this.config.behaviour.ratingMs) {
+          this.settle(c);
+          this.leave(c, 'served');
+        }
         break;
       case 'LEAVING':
         if (move === 'arrived' || (!c.target && sameTile(c.actor.tile, this.exitTile))) c.gone = true;

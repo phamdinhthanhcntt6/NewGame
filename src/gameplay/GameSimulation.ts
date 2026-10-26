@@ -19,6 +19,8 @@ import { Rng } from '../core/Rng';
 import { CafeService, type CustomerView } from './cafe/CafeService';
 import { OrderService, type Order } from './cafe/OrderService';
 import { registerCafeHandlers } from './cafe/cafeHandlers';
+import { BrewingService, type BrewView } from './cafe/BrewingService';
+import { SupplyService } from './cafe/SupplyService';
 import { createNewGameState, type GameState, type ItemStack, type TxRecord } from './state/GameState';
 import { WorldModel } from './world/WorldModel';
 import type { MapData } from './world/types';
@@ -58,7 +60,7 @@ export interface SimulationSnapshot {
   processing: { equipment: EquipmentView[]; selectedRecipe: Record<string, string | null> };
   market: { recentSales: TxRecord[] };
   /** null on maps without a café floor. */
-  cafe: { customers: CustomerView[]; orders: Order[]; recentOrders: Order[]; queue: string[]; freeSpots: number } | null;
+  cafe: { customers: CustomerView[]; orders: Order[]; recentOrders: Order[]; queue: string[]; freeSpots: number; brew: BrewView | null; nextToBrew: number | null; heldDrink: { id: string; recipeId: string; orderId: number; quality: number } | null } | null;
 }
 
 export interface SimulationOptions {
@@ -89,6 +91,8 @@ export class GameSimulation {
   readonly orders: OrderService;
   /** Present only on maps with a café floor (orderPoint marker). */
   readonly cafe: CafeService | null;
+  readonly brewing: BrewingService;
+  readonly supplies: SupplyService;
   readonly player: Actor;
   readonly playerInteraction: InteractionService;
   readonly config: GameplayConfig;
@@ -123,15 +127,16 @@ export class GameSimulation {
     registerShopHandlers(this.actions, this.shops);
     registerFarmHandlers(this.actions, this.farm);
     registerProcessingHandlers(this.actions, this.processing);
-    this.orders = new OrderService(content.recipes, this.bus, () => this.timeMs);
-    this.cafe = this.world.markers('orderPoint').length
-      ? new CafeService(this.world, this.nav, this.orders, content.customers, this.bus, new Rng(opts.rngSeed ?? Date.now()), () => this.timeMs, this.config.player.bodyRadius)
-      : null;
-    registerCafeHandlers(this.actions, this.cafe, this.bus, Object.keys(content.maps));
-
     this.player = new Actor('player', tileCenter(this.startTile()), this.config.player, () => this.timeMs);
     this.player.fsm.onTransition((from, to) => this.bus.emit('actor:stateChanged', { actorId: this.player.id, from, to }));
     this.playerInteraction = new InteractionService(this.player, this.world, this.nav, this.actions, this.bus, this.config.player);
+    this.orders = new OrderService(content.recipes, this.bus, () => this.timeMs);
+    this.cafe = this.world.markers('orderPoint').length
+      ? new CafeService(this.world, this.nav, this.orders, content.customers, this.bus, new Rng(opts.rngSeed ?? Date.now()), () => this.timeMs, this.config.player.bodyRadius, this.tx)
+      : null;
+    this.brewing = new BrewingService(this.world, this.nav, this.player, this.orders, content.recipes, content.brewing, content.items, this.tx, this.bus, () => this.timeMs);
+    this.supplies = new SupplyService(content.brewing.supplies, this.tx, this.shops);
+    registerCafeHandlers(this.actions, this.cafe, this.brewing, this.bus, Object.keys(content.maps));
   }
 
   /** Resume where the save left the player, if that spot is still walkable on this map. */
@@ -180,6 +185,15 @@ export class GameSimulation {
     const gate = this.farm.interactionGate(id);
     if (gate) this.playerInteraction.rejectWithoutMoving(id, gate);
     else this.playerInteraction.request(obj.id);
+  }
+
+  /** Clicking a customer: serve them at their seat, or take their order at the counter. */
+  clickCustomer(id: string): void {
+    const c = this.cafe?.customer(id);
+    if (!c) return;
+    if (c.spot) return this.clickObject(c.spot.objectId);
+    const counter = this.world.allObjects().find((o) => o.type === 'order_counter');
+    if (counter && this.cafe!.customerAtCounter()?.id === id) this.clickObject(counter.id);
   }
 
   cancel(): void {
@@ -241,7 +255,7 @@ export class GameSimulation {
       processing: { equipment: this.processing.allViews(), selectedRecipe: { ...this.state.processing.selectedRecipe } },
       market: { recentSales: this.market.recentSales() },
       cafe: this.cafe
-        ? { customers: this.cafe.views(), orders: this.orders.activeOrders().map((o) => structuredClone(o)), recentOrders: this.orders.recent().slice(0, 8).map((o) => structuredClone(o)), queue: [...this.cafe.queueOrder()], freeSpots: this.cafe.freeSpots() }
+        ? { customers: this.cafe.views(), orders: this.orders.activeOrders().map((o) => structuredClone(o)), recentOrders: this.orders.recent().slice(0, 8).map((o) => structuredClone(o)), queue: [...this.cafe.queueOrder()], freeSpots: this.cafe.freeSpots(), brew: this.brewing.view(), nextToBrew: this.brewing.nextOrderToBrew(), heldDrink: (() => { const d = this.brewing.heldDrink(); return d ? { id: d.id, recipeId: d.recipeId, orderId: d.orderId, quality: d.quality } : null; })() }
         : null,
     };
   }

@@ -73,6 +73,14 @@ Farm → café → farm through signs with shared inventory and reload resuming 
 
 The café's automatic spawner is off in tests that spawn customers themselves (`cafeSim({ autoSpawn })`, `__TCSS__.setCafeOpen`), so they control exactly who arrives.
 
+## 3e. M5 coverage (all passing 2026-10-26) — totals now 131 unit + 23 E2E
+
+### Unit — 13 new tests (`brewing.test.ts`)
+Needle and accuracy maths; **perfect latte** (exact ingredient use, drink in hands, order READY, quality 85 from bean 70 + performance 1); sloppy timing lowers performance/quality deterministically; wrong addition → recipe accuracy 0; missing milk refused, water allowed; brewing preconditions (order, beans, station order); steps only at the station; cancel loses the bean and returns the order to ACCEPTED; **serve via the seat** → receive, taste, rate, pay base price exactly once, leave; a drink only goes to its own customer and only once; customer leaving mid-brew aborts the session and discards a finished drink; supplies only at the shelf.
+
+### E2E — 3 new tests (`tests/e2e/m5-brewing.spec.ts`)
+Full latte with real input: take the order by clicking the customer, walk to three stations, click bean/addition buttons, **stop each needle with the Space key while it is in the green zone** (sim time slowed so a browser can react; the needle follows sim time), serve by clicking the customer, receive exactly 60 coins; supplies bought through HUD buttons; wrong station refused, cancel keeps the order. The full test passed 3/3 under `--repeat-each=3`.
+
 ## 4. Mutation checks performed for M1
 | Deliberate break | Tests failing |
 |---|---|
@@ -117,6 +125,18 @@ The café's automatic spawner is off in tests that spawn customers themselves (`
 | Seat never released | 1 |
 | Customers jump to the end of their path (teleport) | 2 |
 
+### M5 mutation checks
+| Deliberate break | Unit tests failing |
+|---|---|
+| Bean not consumed | 2 |
+| Steps work away from the station | 1 |
+| Brewing starts at any station | 1 |
+| Timing ignores the needle (always perfect) | 1 |
+| Any addition counts as correct | 1 |
+| Serve to any customer | 1 |
+| Customer never pays | 2 |
+| Payment without idempotency key | **0 (equivalent mutant):** settle only runs while the order is SERVED and immediately makes it COMPLETED (terminal, archived), so the order FSM already prevents a second payment. The key is defense in depth. |
+
 ## 5. Known issues / gaps (after M2)
 1. **No customer or employee actors yet**, so actor–actor overlap and avoidance are untested (M4/M8).
 2. **Depth sorting** uses a footprint heuristic tested at fixed probe points. Long multi-tile objects with actors on diagonal corners may still mis-sort; this needs a visual test map when real sprites arrive.
@@ -138,6 +158,10 @@ The café's automatic spawner is off in tests that spawn customers themselves (`
 18. **Accepted orders always fail by timeout until M5** adds brewing and serving.
 19. **Customers/orders are not saved;** leaving the café or reloading ends them (by design for the prototype).
 20. **Travel restarts the whole world scene** (rebuild from save, about one frame). Fine for placeholder art; production may want a transition screen.
+21. **Timing mini-games in E2E run at 0.25× sim speed** so a browser can react inside the window; at normal speed the window is ~100–150 ms (playable, but too tight for automated polling).
+22. **One brewing session at a time, FIFO by order.** The player can't choose which accepted order to brew next; cancel and re-brew is the workaround.
+23. **No trash bin:** a drink can only leave the hands by serving it, or automatically when its customer leaves.
+24. **Payment is the base price** until M6 ratings.
 
 ## 6. Planned coverage per milestone
 | Milestone | Key automated checks |
@@ -145,7 +169,7 @@ The café's automatic spawner is off in tests that spawn customers themselves (`
 | M2 | ✅ done (§3b) |
 | M3 | ✅ done (§3c) |
 | M4 | ✅ done (§3d) |
-| M5 | Each mini-game input changes quality; ingredients consumed once; a drink can be served only once |
+| M5 | ✅ done (§3e) |
 | M6 | Rating weights 40/25/20/15 table tests; reputation/traffic/tips; no negative balance; reward idempotency |
 | M7 | Placement validation; nav rebuild; furniture bonus applied; persistence |
 | M8 | Employees use real tasks (inventory changes match work done) |

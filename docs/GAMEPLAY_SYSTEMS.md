@@ -194,7 +194,7 @@ locked ──buyPlot──▶ EMPTY ─prepare─▶ PREPARED ─plant(−1 seed
 
 ## 16. Café floor & customers (M4)
 `src/gameplay/cafe/CafeService.ts`, data `data/config/customers.json`, map `data/maps/cafe.json`.
-- **Map markers:** `spawn` (street), `exit` (street), `door`, `orderPoint`, `queue[5]`, `waitSpots[4]`; seats are the `chair` objects (non-blocking). Markers are validated walkable at load.
+- **Map markers:** `spawn` (street), `exit` (street), `door`, `orderPoint`, `queue[5]`. Seats are the `chair` objects and standing spots the `standing_spot` objects (both non-blocking; since M5 they carry the serve action). Markers are validated walkable at load.
 - **Customer FSM** (illegal transitions throw):
   `SPAWNING → ENTERING → (QUEUING) → WALKING_TO_ORDER → ORDERING → WAITING → RECEIVING → TASTING → RATING → LEAVING`.
   `QUEUING` is an addition to the brief's list (standing in line behind the order point). Walking to a seat happens inside `WAITING`.
@@ -218,3 +218,27 @@ locked ──buyPlot──▶ EMPTY ─prepare─▶ PREPARED ─plant(−1 seed
 - The world scene performs travel at the **start of the next frame**: `prepareTravel` (cancel actions, commit state, set `player.map` to the destination), save, stop the HUD, restart the world scene with the new map. Shutdown flushing is skipped during travel so it can't overwrite the destination.
 - Opening the game without `?map=` resumes the saved map (farm for a new game). `?map=sandbox` is never saved.
 - **Phaser reuses scene instances on restart:** scenes must reset per-run fields in `create()`. HUD panels and hover state are reset explicitly.
+
+## 19. Brewing (M5)
+`src/gameplay/cafe/BrewingService.ts`, steps in `data/config/recipes.json`, options in `data/config/brewing.json`.
+- **Stations** (café, behind the counter, used from their south side): `grinder`, `cafe_espresso`, `milk_station`. Each recipe step names the station *type* it happens at.
+- **Session:** using the first station starts a session for the **oldest ACCEPTED order** (FIFO); the order becomes PREPARING. Steps run in order; using a station "arms" its step. Consecutive steps at the same station arm automatically. Using the wrong station fails with `wrongStation`.
+- **Step kinds:**
+  - `choose_bean`: pick one owned roasted bean; 1 unit is consumed immediately (`brew:bean:<order>` transaction).
+  - `choose_addition`: milk / condensed milk (consumed) or water (free). A choice other than the recipe's `correct` one lowers recipe accuracy. A missing item is refused (`noIngredient`).
+  - `timing`: a needle moves 0→1→0 (triangle wave, `periodMs`) on **simulation time**. Pressing records `accuracy = 1` inside `target ± tolerance`, falling linearly to 0 at `zeroAt` (0.35) beyond it.
+- Step commands only work while the player stands at that step's station (`notAtStation`).
+- **Drink:** `performance` = mean timing accuracy; `recipeAccuracy` = share of correct choices; `quality = 0.5 × beanQuality + 0.5 × performance × 100`; `readyAt` = sim time. It goes into the player's hands (`CARRYING`); the order becomes READY.
+- **Cancel:** the session ends, used ingredients are lost (never refunded or reused), and the order goes back to ACCEPTED (`PREPARING → ACCEPTED` was added to the order table for this).
+- **Customer gives up:** the session aborts; a finished drink for that order is discarded from the player's hands automatically (no stuck hands).
+- The player FSM gained `IDLE ⇄ CARRYING` (an item can appear in or leave the hands while standing, e.g. when the brewing panel finishes a drink).
+
+## 20. Serving & payment (M5)
+- Chairs and standing spots (`standing_spot` objects, replacing the M4 `waitSpots` markers) have a `serve` action. Clicking a **customer** routes to their spot (or to the order counter if they are ordering there).
+- **Validation (`canServe`):** holding a drink; a customer reserved that spot; the drink's order is *that* customer's order (`wrongCustomer` otherwise); the customer is WAITING and already seated; the order is READY.
+- **Serve:** order READY → SERVED; the drink leaves the player's hands (so it can't be served twice); the customer goes RECEIVING → TASTING → RATING.
+- **Settle:** when rating ends, a `RatingPolicy` decides coins + EXP (M5: the recipe's base price and EXP). Payment uses idempotency key `order:<id>:paid`; the order becomes COMPLETED; the customer leaves (`served`).
+
+## 21. Supplies & café HUD (M5)
+- `supply_shelf` opens the `supplies` shop session; `SupplyService.buy` sells milk (5) and condensed milk (6) through `TransactionService`.
+- `CafeHud` (placeholder) shows coins and stock, open orders, the brewing panel (progress, next station, bean/addition buttons, timing bar with target zone, Stop/Space, Cancel), supply buttons at the shelf, and recent outcomes. It issues only `CafeUiCommands`.

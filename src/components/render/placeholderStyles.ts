@@ -29,6 +29,11 @@ export const PLACEHOLDER_STYLES: Record<string, PlaceholderStyle> = {
   cafe_table: { color: 0x8b5a2b, height: 22 },
   chair: { color: 0xc49a6c, height: 8 },
   travel_sign: { color: 0x2f9e8f, height: 48 },
+  grinder: { color: 0x6b6b75, height: 40 },
+  cafe_espresso: { color: 0xb0b6bd, height: 46 },
+  milk_station: { color: 0xe8e2d0, height: 34 },
+  supply_shelf: { color: 0x7a5c3e, height: 56 },
+  standing_spot: { color: 0xd9c3a0, height: 1 },
   tree: { color: 0x2f6b34, height: 72 },
 };
 

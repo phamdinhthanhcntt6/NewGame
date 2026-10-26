@@ -10,7 +10,7 @@ import { EquipmentPresenter } from '../components/presenters/EquipmentPresenter'
 import { CustomerPresenter } from '../components/presenters/CustomerPresenter';
 import { FeedbackPresenter } from '../ui/FeedbackPresenter';
 import { installTestBridge } from '../core/testBridge';
-import { screenToWorld } from '../utils/iso';
+import { screenToWorld, worldToScreen } from '../utils/iso';
 import { worldToTile, type TilePos } from '../utils/tile';
 
 export const WORLD_SCENE = 'WorldScene';
@@ -96,7 +96,8 @@ export class WorldScene extends Phaser.Scene {
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
       if (p.rightButtonDown()) return this.sim.cancel();
       const target = this.pointerTarget(p);
-      if (target.objectId) this.sim.clickObject(target.objectId);
+      if (target.customerId) this.sim.clickCustomer(target.customerId);
+      else if (target.objectId) this.sim.clickObject(target.objectId);
       else this.sim.clickTile(target.tile);
     });
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.updateHover(this.pointerTarget(p)));
@@ -134,7 +135,8 @@ export class WorldScene extends Phaser.Scene {
       pos: s.player.pos,
       state: s.player.state,
       facing: s.player.facing,
-      heldItem: s.player.heldItem,
+      // A drink shows as its recipe name rather than its internal id.
+      heldItem: s.cafe?.heldDrink ? (CONTENT.recipes[s.cafe.heldDrink.recipeId]?.label ?? s.player.heldItem) : s.player.heldItem,
       progress: cur?.phase === 'work' ? cur.progress : null,
     });
     this.worldRenderer.setPathPreview(s.player.waypoints.length ? [s.player.pos, ...s.player.waypoints] : null);
@@ -164,9 +166,21 @@ export class WorldScene extends Phaser.Scene {
    * What the player is pointing at: the front-most object whose drawn shape
    * is under the pointer, otherwise the floor tile under it.
    */
-  pointerTarget(p: { x: number; y: number }): { objectId: string | null; tile: TilePos } {
+  pointerTarget(p: { x: number; y: number }): { customerId: string | null; objectId: string | null; tile: TilePos } {
     const w = this.cameras.main.getWorldPoint(p.x, p.y);
-    return { objectId: this.worldRenderer.objectAtPoint(w.x, w.y), tile: worldToTile(screenToWorld({ x: w.x, y: w.y })) };
+    return {
+      customerId: this.customers?.customerAtPoint(w.x, w.y) ?? null,
+      objectId: this.worldRenderer.objectAtPoint(w.x, w.y),
+      tile: worldToTile(screenToWorld({ x: w.x, y: w.y })),
+    };
+  }
+
+  /** Render-space point on a customer's body (test bridge). */
+  customerClickPoint(id: string): { x: number; y: number } | null {
+    const c = this.sim.cafe?.customer(id);
+    if (!c) return null;
+    const s = worldToScreen(c.actor.pos);
+    return { x: s.x, y: s.y - 22 };
   }
 
   /** Render-space point → screen (canvas) pixels; inverse of the camera transform. */
@@ -179,7 +193,7 @@ export class WorldScene extends Phaser.Scene {
     return this.worldRenderer.objectClickPoint(id);
   }
 
-  private updateHover(target: { objectId: string | null; tile: TilePos }): void {
+  private updateHover(target: { customerId: string | null; objectId: string | null; tile: TilePos }): void {
     const obj = target.objectId ? this.sim.world.getObject(target.objectId) : undefined;
     const id = obj?.def.interaction ? obj.id : null;
     if (id !== this.hoveredObject) {

@@ -47,6 +47,7 @@ interface ObjectEntry {
 }
 
 class PlaceholderActorView implements ActorView {
+  depth = 0;
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly body: Phaser.GameObjects.Arc;
   private readonly nose: Phaser.GameObjects.Arc;
@@ -74,6 +75,7 @@ class PlaceholderActorView implements ActorView {
   update(s: ActorViewState): void {
     const p = worldToScreen(s.pos);
     const d = actorDepth(s.pos);
+    this.depth = d;
     this.shadow.setPosition(p.x, p.y).setDepth(d);
     this.body.setPosition(p.x, p.y - 22).setDepth(d + 0.01);
     // Facing marker: project a short grid-space vector to screen.
@@ -96,6 +98,10 @@ class PlaceholderActorView implements ActorView {
     const bubble = s.bubble ?? null;
     this.bubble.setVisible(bubble !== null).setPosition(p.x, p.y - 80).setDepth(d + 0.06);
     if (bubble !== null && this.bubble.text !== bubble) this.bubble.setText(bubble);
+  }
+
+  hitTest(px: number, py: number): boolean {
+    return Math.hypot(px - this.body.x, py - this.body.y) <= 22 || this.bubble.getBounds().contains(px, py);
   }
 
   destroy(): void {

@@ -45,6 +45,12 @@ export interface GameEvents {
   'customer:left': { customerId: string; reason: string; satisfaction: number };
   'customer:removed': { customerId: string; reason: 'stuck' };
   'world:travelRequested': { map: string };
+  'brew:started': { orderId: number; recipeId: string };
+  'brew:step': { orderId: number; stepIndex: number };
+  'brew:finished': { orderId: number; drinkId: string; quality: number };
+  'brew:aborted': { orderId: number; reason: 'cancelled' | 'orderEnded' };
+  'brew:discarded': { drinkId: string; orderId: number };
+  'cafe:paid': { orderId: number; coins: number; exp: number };
   'shop:opened': { shopId: string; objectId: string };
   'shop:closed': { shopId: string };
   'save:written': { at: number };
