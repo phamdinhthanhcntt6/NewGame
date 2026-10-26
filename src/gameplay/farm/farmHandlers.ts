@@ -3,7 +3,7 @@ import type { FarmResult, FarmService } from './FarmService';
 
 const asCan = (r: FarmResult): CanStartResult => r;
 
-const mustSucceed = (r: FarmResult, what: string): void => {
+export const mustSucceed = (r: { ok: true } | { ok: false; reason: string }, what: string): void => {
   // canStart already passed moments ago; a failure here means a rule bug, not a player error.
   if (!r.ok) throw new Error(`${what} failed after canStart passed: ${r.reason}`);
 };
@@ -30,9 +30,5 @@ export function registerFarmHandlers(registry: ActionRegistry, farm: FarmService
     .register('farm.refill', {
       canStart: () => asCan(farm.canRefill()),
       complete: () => mustSucceed(farm.refill(), 'refill'),
-    })
-    .register('shop.open', {
-      canStart: () => ({ ok: true }),
-      complete: ({ object, action }) => farm.openShopAt(String(action.params.shopId ?? 'seeds'), object.id),
     });
 }

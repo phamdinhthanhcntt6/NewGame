@@ -1,0 +1,28 @@
+{
+  "equipment": {
+    "drying_rack": {
+      "label": "Giàn phơi",
+      "levels": [
+        { "level": 1, "cost": 0, "speedBonus": 0, "qualityBonus": 0, "batchMultiplier": 1 },
+        { "level": 2, "cost": 300, "speedBonus": 0.25, "qualityBonus": 3, "batchMultiplier": 2 },
+        { "level": 3, "cost": 800, "speedBonus": 0.5, "qualityBonus": 6, "batchMultiplier": 3 }
+      ]
+    },
+    "roaster": {
+      "label": "Máy rang",
+      "levels": [
+        { "level": 1, "cost": 0, "speedBonus": 0, "qualityBonus": 0, "batchMultiplier": 1 },
+        { "level": 2, "cost": 500, "speedBonus": 0.25, "qualityBonus": 4, "batchMultiplier": 2 },
+        { "level": 3, "cost": 1200, "speedBonus": 0.5, "qualityBonus": 8, "batchMultiplier": 3 }
+      ]
+    }
+  },
+  "recipes": {
+    "dry_robusta": { "label": "Phơi Robusta", "equipment": "drying_rack", "input": { "itemId": "cherry_robusta", "qty": 10 }, "output": { "itemId": "green_robusta", "qty": 5 }, "durationMs": 90000, "qualityDelta": 0, "expReward": 3 },
+    "dry_arabica": { "label": "Phơi Arabica", "equipment": "drying_rack", "input": { "itemId": "cherry_arabica", "qty": 8 }, "output": { "itemId": "green_arabica", "qty": 4 }, "durationMs": 90000, "qualityDelta": 0, "expReward": 4 },
+    "dry_culi": { "label": "Phơi Culi", "equipment": "drying_rack", "input": { "itemId": "cherry_culi", "qty": 8 }, "output": { "itemId": "green_culi", "qty": 4 }, "durationMs": 120000, "qualityDelta": 0, "expReward": 6 },
+    "roast_robusta": { "label": "Rang Robusta", "equipment": "roaster", "input": { "itemId": "green_robusta", "qty": 5 }, "output": { "itemId": "roasted_robusta", "qty": 5 }, "durationMs": 60000, "qualityDelta": 2, "expReward": 4 },
+    "roast_arabica": { "label": "Rang Arabica", "equipment": "roaster", "input": { "itemId": "green_arabica", "qty": 4 }, "output": { "itemId": "roasted_arabica", "qty": 4 }, "durationMs": 60000, "qualityDelta": 2, "expReward": 5 },
+    "roast_culi": { "label": "Rang Culi", "equipment": "roaster", "input": { "itemId": "green_culi", "qty": 4 }, "output": { "itemId": "roasted_culi", "qty": 4 }, "durationMs": 75000, "qualityDelta": 2, "expReward": 7 }
+  }
+}

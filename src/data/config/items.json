@@ -5,6 +5,12 @@
   "cherry_robusta": { "label": "Quả cà phê Robusta", "category": "cherry" },
   "cherry_arabica": { "label": "Quả cà phê Arabica", "category": "cherry" },
   "cherry_culi": { "label": "Quả cà phê Culi", "category": "cherry" },
+  "green_robusta": { "label": "Nhân xanh Robusta", "category": "green" },
+  "green_arabica": { "label": "Nhân xanh Arabica", "category": "green" },
+  "green_culi": { "label": "Nhân xanh Culi", "category": "green" },
+  "roasted_robusta": { "label": "Hạt rang Robusta", "category": "roasted" },
+  "roasted_arabica": { "label": "Hạt rang Arabica", "category": "roasted" },
+  "roasted_culi": { "label": "Hạt rang Culi", "category": "roasted" },
   "test_cup": { "label": "Cốc thử", "category": "debug" },
   "box": { "label": "Hộp", "category": "debug" }
 }

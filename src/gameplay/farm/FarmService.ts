@@ -2,7 +2,7 @@ import type { Clock } from '../../core/Clock';
 import type { EventBus } from '../../core/EventBus';
 import type { GameEvents } from '../../core/events';
 import type { TransactionService } from '../../systems/economy/TransactionService';
-import { distanceToFootprint, type TilePos } from '../../utils/tile';
+import type { ShopSessionService } from '../../systems/shop/ShopSessionService';
 import type { GameState, PlotState } from '../state/GameState';
 import type { WorldModel } from '../world/WorldModel';
 import {
@@ -41,7 +41,6 @@ const no = (reason: string, applicable = true): FarmResult => ({ ok: false, reas
  * through the TransactionService.
  */
 export class FarmService {
-  private shop: { shopId: string; objectId: string } | null = null;
   private lastSignature = new Map<string, string>();
 
   constructor(
@@ -52,6 +51,7 @@ export class FarmService {
     private readonly tx: TransactionService,
     private readonly bus: EventBus<GameEvents>,
     private readonly clock: Clock,
+    private readonly shops: ShopSessionService,
   ) {
     this.syncPlotsWithMap();
     this.update();
@@ -107,10 +107,6 @@ export class FarmService {
 
   get selectedSeed(): string | null {
     return this.state.farm.selectedSeed;
-  }
-
-  get openShop(): string | null {
-    return this.shop?.shopId ?? null;
   }
 
   /** Seed used for planting: the selected one if owned, else the first owned seed in data order. */
@@ -266,27 +262,8 @@ export class FarmService {
     return OK;
   }
 
-  openShopAt(shopId: string, objectId: string): void {
-    this.shop = { shopId, objectId };
-    this.bus.emit('shop:opened', { shopId, objectId });
-  }
-
-  closeShop(): void {
-    if (!this.shop) return;
-    const { shopId } = this.shop;
-    this.shop = null;
-    this.bus.emit('shop:closed', { shopId });
-  }
-
-  /** The shop session ends when the player walks away from the stall. */
-  checkShopDistance(playerTile: TilePos): void {
-    if (!this.shop) return;
-    const o = this.world.getObject(this.shop.objectId);
-    if (!o || distanceToFootprint(playerTile, o.footprint) > this.config.shopLeaveDistance) this.closeShop();
-  }
-
   buySeeds(seedId: string, qty: number): FarmResult {
-    if (this.shop?.shopId !== 'seeds') return no('shopClosed');
+    if (!this.shops.isOpen('seeds')) return no('shopClosed');
     const seed = this.seeds[seedId];
     if (!seed) return no('unknownSeed');
     if (!Number.isInteger(qty) || qty <= 0) return no('invalidQuantity');

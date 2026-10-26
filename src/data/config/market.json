@@ -1,0 +1,13 @@
+{
+  "basePrices": {
+    "green_robusta": 12,
+    "green_arabica": 20,
+    "green_culi": 28,
+    "roasted_robusta": 18,
+    "roasted_arabica": 28,
+    "roasted_culi": 40
+  },
+  "quality": { "atZero": 0.5, "perPoint": 0.01 },
+  "demand": { "saturationPerUnit": 0.01, "minFactor": 0.5, "recoveryPerMinute": 0.05 },
+  "historyShown": 6
+}
