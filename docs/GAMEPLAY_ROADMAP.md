@@ -109,5 +109,5 @@
 - **Evidence:** [decorate mode: armchairs and lamps placed, rotated bookshelf ghost, bonuses](screenshots/m7-decor.png)
 - **Delivered:** GAMEPLAY_SYSTEMS §25–§27. Save schema **v4** (furniture layout per map) with a v3→v4 migration.
 - **Built in parallel with M6** in a separate worktree (`D:\NewGame-m7`, branch `m7-furniture`), then rebased onto the M6 commit. The dev server and E2E port are now configurable (`TCSS_PORT`, default 5180) so two checkouts never test each other's server.
-- **Totals:** 185 unit + 27 E2E tests; all 12 mutation checks caught.
+- **Totals:** 186 unit + 27 E2E tests; all 13 mutation checks caught.
 - **M8 unblocked:** yes. Employees can reuse seats and approach rules unchanged; furniture changes emit `decor:changed`, which any new walker must answer with a re-plan (see GAMEPLAY_SYSTEMS §26).

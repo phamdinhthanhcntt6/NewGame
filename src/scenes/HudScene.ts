@@ -46,7 +46,8 @@ export class HudScene extends Phaser.Scene {
         buySupply: (id, qty) => sim.supplies.buy(id, qty),
       };
       this.cafeHud = new CafeHud(this, cafe, CONTENT.recipes, CONTENT.items, CONTENT.brewing);
-      this.input.keyboard?.on('keydown-SPACE', () => this.cafeHud?.pressShortcut());
+      // The café panel is hidden while decorating, so its needle can't be pressed blind.
+      this.input.keyboard?.on('keydown-SPACE', () => !sim.decor.isActive && this.cafeHud?.pressShortcut());
     }
     else if (sim.farm.allPlotViews().length > 0) {
       this.farmHud = new FarmHud(this, sim.bus, sim.farm, CONTENT.seeds);

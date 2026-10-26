@@ -5,6 +5,8 @@ import type { Customer } from '../../src/gameplay/cafe/CafeService';
 import type { GameSimulation } from '../../src/gameplay/GameSimulation';
 import type { GameState } from '../../src/gameplay/state/GameState';
 import { MemoryStorage, SaveService } from '../../src/gameplay/state/SaveService';
+import { FakeClock } from '../../src/core/Clock';
+import { Autosave, createSession } from '../../src/core/session';
 import { reachableSet } from '../../src/systems/navigation/astar';
 import { footprintTiles, tileKey, type TilePos } from '../../src/utils/tile';
 import vi from '../../src/data/locales/vi.json';
@@ -407,6 +409,18 @@ describe('persistence', () => {
     expect(b.tx.count('furn_plant')).toBe(plants + 2);
     expect(b.state.decor.layouts.cafe).toEqual(b.decor.layout());
     expectGridMatchesObjects(b);
+  });
+
+  it('autosave picks up a furniture move even though no coins or items changed', () => {
+    const storage = new MemoryStorage();
+    const session = createSession({ mapId: 'cafe', content: CONTENT, persistent: true, storage, clock: new FakeClock() });
+    const autosave = new Autosave(session, 2000);
+    autosave.update(0);
+    expect(storage.get('tcss.save.slot1')).toBeNull();
+    expect(session.sim.decor.move('plant_c1', { x: 7, y: 7 }, 0)).toEqual(ok);
+    autosave.update(5000);
+    const saved = JSON.parse(storage.get('tcss.save.slot1')!) as GameState;
+    expect(saved.decor.layouts.cafe?.find((f) => f.id === 'plant_c1')).toMatchObject({ x: 7, y: 7 });
   });
 
   it('a v3 save (before furniture) loads with the starting café', () => {

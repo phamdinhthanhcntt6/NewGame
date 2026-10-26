@@ -1,9 +1,8 @@
 import { defineConfig } from 'vitest/config';
 
-declare const process: { env: Record<string, string | undefined> }; // no @types/node in this project
-
-/** TCSS_PORT lets parallel worktrees run their own dev server (default 5180). */
-const port = Number(process.env.TCSS_PORT ?? 5180);
+/** TCSS_PORT lets parallel worktrees run their own dev server (default 5180). No @types/node here, hence globalThis. */
+const env = (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env ?? {};
+const port = Number(env.TCSS_PORT ?? 5180);
 
 export default defineConfig({
   server: { port, strictPort: true },
