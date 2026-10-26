@@ -81,7 +81,7 @@ test('seed shop needs the player at the stall; HUD buy goes through the transact
   const before = await page.evaluate(() => window.__TCSS__!.buttonClient('seed.buy1.arabica'));
   expect(before?.enabled).toBe(false); // shop closed
   await clickObject(page, 'seed_stall');
-  await page.waitForFunction(() => window.__TCSS__!.snapshot().farm.shop === 'seeds');
+  await page.waitForFunction(() => window.__TCSS__!.snapshot().shop === 'seeds');
   await clickButton(page, 'seed.buy1.arabica');
   await page.waitForFunction(() => (window.__TCSS__!.snapshot().economy.inventory.seed_arabica?.qty ?? 0) === 1);
   expect((await snap(page)).economy.coins).toBe(150);
@@ -98,7 +98,7 @@ test('seed shop needs the player at the stall; HUD buy goes through the transact
   await waitIdle(page);
   const far = await page.evaluate(() => window.__TCSS__!.tileToClient({ x: 14, y: 11 }));
   await page.mouse.click(far.x, far.y);
-  await page.waitForFunction(() => window.__TCSS__!.snapshot().farm.shop === null);
+  await page.waitForFunction(() => window.__TCSS__!.snapshot().shop === null);
   await page.waitForFunction(() => window.__TCSS__!.buttonClient('seed.buy1.arabica')?.enabled === false, undefined, { timeout: 2000 });
 });
 

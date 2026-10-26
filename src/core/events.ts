@@ -36,6 +36,8 @@ export interface GameEvents {
   'farm:plotChanged': { plotId: string; phase: PlotPhase; locked: boolean; needsWater: boolean; stage: number; soilLevel: number };
   'farm:canChanged': { water: number; capacity: number };
   'farm:seedSelected': { seedId: string | null };
+  'processing:changed': { equipmentId: string; status: 'idle' | 'working' | 'done' };
+  'market:sold': { itemId: string; qty: number; coins: number };
   'shop:opened': { shopId: string; objectId: string };
   'shop:closed': { shopId: string };
   'save:written': { at: number };

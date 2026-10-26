@@ -1,4 +1,4 @@
-import { SAVE_SCHEMA_VERSION, type GameState } from './GameState';
+import { SAVE_MIGRATIONS, SAVE_SCHEMA_VERSION, type GameState } from './GameState';
 
 export interface StorageAdapter {
   get(key: string): string | null;
@@ -80,6 +80,18 @@ export function validateState(s: unknown): string[] {
     if (!isObj(farm.wateringCan) || !isNum(farm.wateringCan.water)) p.push('farm.wateringCan');
   }
   if (!isObj(s.player)) p.push('player');
+  const proc = s.processing;
+  if (!isObj(proc) || !isObj(proc.equipment) || !isObj(proc.selectedRecipe)) p.push('processing');
+  else
+    for (const [k, v] of Object.entries(proc.equipment)) {
+      if (!isObj(v) || typeof v.type !== 'string' || !isNum(v.level)) p.push(`processing.equipment.${k}`);
+      else if (v.job !== null) {
+        const j = v.job;
+        if (!isObj(j) || !isNum(j.startedAt) || !isNum(j.durationMs) || !isNum(j.outputQty) || j.outputQty <= 0 || typeof j.outputItem !== 'string')
+          p.push(`processing.equipment.${k}.job`);
+      }
+    }
+  if (!isObj(s.market) || !isObj(s.market.saturation)) p.push('market');
   return p;
 }
 
@@ -91,7 +103,7 @@ export class SaveService {
   constructor(
     private readonly storage: StorageAdapter,
     readonly key = 'tcss.save.slot1',
-    private readonly migrations: Record<number, Migration> = {},
+    private readonly migrations: Record<number, Migration> = SAVE_MIGRATIONS,
     private readonly currentVersion = SAVE_SCHEMA_VERSION,
   ) {}
 

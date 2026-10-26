@@ -11,6 +11,10 @@ import { ActionRegistry } from './actions/ActionRegistry';
 import { registerBasicHandlers } from './actions/basicHandlers';
 import { FarmService, type PlotView } from './farm/FarmService';
 import { registerFarmHandlers } from './farm/farmHandlers';
+import { MarketService } from './market/MarketService';
+import { ProcessingService, type EquipmentView } from './processing/ProcessingService';
+import { registerProcessingHandlers } from './processing/processingHandlers';
+import { ShopSessionService, registerShopHandlers } from '../systems/shop/ShopSessionService';
 import { createNewGameState, type GameState, type ItemStack, type TxRecord } from './state/GameState';
 import { WorldModel } from './world/WorldModel';
 import type { MapData } from './world/types';
@@ -44,7 +48,11 @@ export interface SimulationSnapshot {
   interaction: InteractionSnapshot;
   objects: Array<{ id: string; counters: Record<string, number> }>;
   economy: { coins: number; exp: number; inventory: Record<string, ItemStack>; itemCount: number; capacity: number; lastTx: TxRecord | null };
-  farm: { plots: PlotView[]; can: { water: number; capacity: number }; selectedSeed: string | null; seedToPlant: string | null; shop: string | null };
+  farm: { plots: PlotView[]; can: { water: number; capacity: number }; selectedSeed: string | null; seedToPlant: string | null };
+  /** Open shop session ('seeds' | 'market') or null. */
+  shop: string | null;
+  processing: { equipment: EquipmentView[]; selectedRecipe: Record<string, string | null> };
+  market: { recentSales: TxRecord[] };
 }
 
 export interface SimulationOptions {
@@ -67,6 +75,9 @@ export class GameSimulation {
   readonly clock: Clock;
   readonly tx: TransactionService;
   readonly farm: FarmService;
+  readonly shops: ShopSessionService;
+  readonly processing: ProcessingService;
+  readonly market: MarketService;
   readonly player: Actor;
   readonly playerInteraction: InteractionService;
   readonly config: GameplayConfig;
@@ -93,9 +104,14 @@ export class GameSimulation {
     this.world = new WorldModel(map, content.objectTypes);
     this.nav = new NavigationService(this.world.grid, this.config.player.bodyRadius);
     this.tx = new TransactionService(this.state, content.items, eco, this.bus, this.clock);
-    this.farm = new FarmService(this.state, this.world, content.seeds, eco.farm, this.tx, this.bus, this.clock);
+    this.shops = new ShopSessionService(this.world, this.bus, eco.farm.shopLeaveDistance);
+    this.farm = new FarmService(this.state, this.world, content.seeds, eco.farm, this.tx, this.bus, this.clock, this.shops);
+    this.processing = new ProcessingService(this.state, this.world, content.processing, this.tx, this.bus, this.clock);
+    this.market = new MarketService(this.state, content.market, content.seeds, this.tx, this.shops, this.bus, this.clock);
     registerBasicHandlers(this.actions, this.bus);
+    registerShopHandlers(this.actions, this.shops);
     registerFarmHandlers(this.actions, this.farm);
+    registerProcessingHandlers(this.actions, this.processing);
 
     this.player = new Actor('player', tileCenter(this.startTile()), this.config.player, () => this.timeMs);
     this.player.fsm.onTransition((from, to) => this.bus.emit('actor:stateChanged', { actorId: this.player.id, from, to }));
@@ -124,7 +140,7 @@ export class GameSimulation {
       remaining -= dt;
     }
     this.farm.update();
-    this.farm.checkShopDistance(this.player.tile);
+    this.shops.checkDistance(this.player.tile);
   }
 
   /** Player input → command. A click on an object interacts; a click on floor moves. */
@@ -191,8 +207,10 @@ export class GameSimulation {
         can: { water: this.farm.canWater, capacity: this.content.economy.farm.wateringCan.capacity },
         selectedSeed: this.farm.selectedSeed,
         seedToPlant: this.farm.seedToPlant(),
-        shop: this.farm.openShop,
       },
+      shop: this.shops.current,
+      processing: { equipment: this.processing.allViews(), selectedRecipe: { ...this.state.processing.selectedRecipe } },
+      market: { recentSales: this.market.recentSales() },
     };
   }
 }

@@ -47,6 +47,22 @@ Full farming loop with real mouse clicks and clock fast-forward; seed shop via H
 
 E2E HUD clicks use `__TCSS__.buttonClient(name)` and wait for the button to be enabled, because the HUD refreshes one frame after the simulation.
 
+## 3c. M3 coverage (all passing 2026-10-26) — totals now 100 unit + 17 E2E
+
+### Unit — 21 new tests
+| Area | File | Checks |
+|---|---|---|
+| Processing | `processing.test.ts` | Equipment on the map; no-input refusal; inputs consumed at load, outputs only on collect after the time; full chain with quality; busy machine refused, second rack free; preferred vs first-runnable recipe; full bag blocks collect; collect idempotent; upgrade rules (idle only, charged once, batch ×2, speed, quality, max level); jobs finish while closed |
+| Conservation | `processing.test.ts` | **300-step fuzz with an independent ledger:** bag = start + Σ transaction deltas, and per recipe collected + pending outputs = consumed inputs × ratio |
+| Market | `market.test.ts` | Market session required; payout = quote exactly; overselling / zero / fractional / unsellable rejected; quality pricing; saturation lowers price and recovers over time; bulk vs one-by-one; saturation saved; recent sales order; walking away closes |
+| Economy data | `market.test.ts` | Every processing step increases the sale value of a harvest; raw sale covers ≥ 80% of seed cost |
+| Save | `save.test.ts` | Real v1 (M2-era) save → v2: farm progress kept, equipment created; multi-step migration chain order |
+
+### E2E — 4 new tests (`tests/e2e/m3-processing-market.spec.ts`)
+Farm → market with real clicks (harvest, dry, roast, sell all via HUD; exact payout 94); bulk selling lowers the next price and nothing sells away from the market; equipment panel recipe preference + upgrade blocked while running; a batch keeps processing across reloads and finishes while closed.
+
+UI-focused E2E tests may use the dev-only `__TCSS__.grantItems`, which still goes through `TransactionService` (reason `debug:grant`). The full-chain test uses no grants.
+
 ## 4. Mutation checks performed for M1
 | Deliberate break | Tests failing |
 |---|---|
@@ -68,6 +84,18 @@ E2E HUD clicks use `__TCSS__.buttonClient(name)` and wait for the button to be e
 | Rules read stale (un-advanced) plot state | 1 |
 | Harvest allowed while GROWING | 3 |
 
+### M3 mutation checks
+| Deliberate break | Unit tests failing |
+|---|---|
+| Load a batch without consuming inputs | 4 |
+| Collect without idempotency key | 1 |
+| Load a busy machine | 2 |
+| Collect before the job is done | 1 |
+| Upgrade while running | 1 |
+| Sell away from the market | 1 |
+| No saturation after selling | 3 |
+| Sale pays more than the quote | 1 |
+
 ## 5. Known issues / gaps (after M2)
 1. **No customer or employee actors yet**, so actor–actor overlap and avoidance are untested (M4/M8).
 2. **Depth sorting** uses a footprint heuristic tested at fixed probe points. Long multi-tile objects with actors on diagonal corners may still mis-sort; this needs a visual test map when real sprites arrive.
@@ -82,12 +110,15 @@ E2E HUD clicks use `__TCSS__.buttonClient(name)` and wait for the button to be e
 11. **Seed `unlockLevel` is data only.** Culi can be bought at level 1 until levels exist (M6).
 12. **Single save slot in localStorage.** Quota errors on `setItem` are not caught yet (M11). Playwright gets a fresh browser context per test, so E2E runs never share saves.
 13. **The dev clock offset** (`tcss.debug.clockOffset`) persists in localStorage in dev builds. It is ignored in production builds.
+14. **The world snapshot is built twice per frame** (world + HUD scenes) and now includes equipment views and market history. Fine at this scale; it should be shared once customers arrive.
+15. **Station panel recipe buttons** sit at fixed positions; long localized labels could overflow. Placeholder only.
+16. **No free "sell quantity" stepper:** selling is by 1 / 10 / all buttons. `MarketService.sell` accepts any quantity; the UI just doesn't offer it yet.
 
 ## 6. Planned coverage per milestone
 | Milestone | Key automated checks |
 |---|---|
 | M2 | ✅ done (§3b) |
-| M3 | Processing consumes inputs before producing outputs; capacity limits; no selling more than owned; transaction history totals |
+| M3 | ✅ done (§3c) |
 | M4 | Customers never teleport (max displacement per tick); queue order; patience → FAILED; blocked path → customer leaves, no stuck NPCs (fuzz) |
 | M5 | Each mini-game input changes quality; ingredients consumed once; a drink can be served only once |
 | M6 | Rating weights 40/25/20/15 table tests; reputation/traffic/tips; no negative balance; reward idempotency |

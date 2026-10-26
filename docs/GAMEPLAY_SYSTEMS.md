@@ -166,3 +166,28 @@ locked ──buyPlot──▶ EMPTY ─prepare─▶ PREPARED ─plant(−1 seed
 ## 12. Farm HUD and plot visuals (placeholder)
 - `FarmHud` (`src/ui/FarmHud.ts`) reads snapshots and calls only the `FarmUiCommands` interface: `selectSeed`, `buySeeds`, `buyPlot`, `upgradeSoil`, `nextSoilCost`. Its background swallows clicks, and Phaser's top-scene-first input means HUD clicks never reach the world.
 - `PlotPresenter` maps plot state to an `ObjectVisual` (`locked`, `empty`, `prepared`, `thirsty`, `growing_0..3`, `ready`, `harvested` + caption + progress). The renderer only redraws when the visual actually changes.
+
+## 13. Processing (M3)
+`src/gameplay/processing/ProcessingService.ts`, `processingHandlers.ts`, data `data/config/processing.json`.
+- **Chain:** cherries →(drying rack)→ green beans →(roaster)→ roasted beans. Recipes per variety: input item/qty, output item/qty, duration, quality delta, EXP.
+- **Equipment** on the farm: `drying_rack_1`, `drying_rack_2`, `roaster`. Each has a persistent `EquipmentState { level, job }`.
+- **Load** (click an idle machine): picks the HUD-preferred recipe if its inputs are available, else the first runnable one. Inputs × batch size are removed through `TransactionService` *in the same step* the job is recorded. A busy machine can't be loaded.
+- **Job:** runs on the wall clock (`startedAt + durationMs`), so it finishes while the game is closed. Output quantity and quality are fixed at load: `inputQuality + qualityDelta + level.qualityBonus`.
+- **Collect** (click a finished machine): adds outputs + EXP with idempotency key `process:<equipmentId>:<startedAt>`. It needs bag space; if the bag is full the output waits in the machine.
+- **Conservation:** outputs exist only inside a job created by consuming inputs, and enter the bag only by collecting that job once. A 300-step fuzz test checks this against an independent transaction ledger.
+- **Upgrades** (idle machines only, so a running job's terms never change): level 2/3 = speed +25/50%, quality +3/6 (rack) or +4/8 (roaster), batch ×2/×3. Costs in data, charged once per level (idempotency key).
+- **Machine click order:** collect if done, otherwise load (`collect`, `load` actions).
+
+## 14. Market (M3)
+`src/gameplay/market/MarketService.ts`, data `data/config/market.json` (+ cherry prices from `seeds.json sellPrice`).
+- **Price per unit:** `base × (0.5 + 0.01 × quality) × max(0.5, 1 − saturation)`. Each unit sold adds 0.01 saturation; saturation recovers 0.05 per minute of wall-clock time and is saved.
+- **Quote = payout:** `quote(item, qty)` prices each unit at its own saturation step and floors the total. `sell` pays exactly that.
+- **Validation:** sale only while the market session is open (standing at the stall); integer qty > 0; never more than owned; only items with a price are sellable (seeds are not).
+- **History:** every sale is a `sell:<item>` transaction in the central history; the panel shows the latest.
+- **Design invariant (tested on data):** for every variety, green beans are worth more than the cherries they came from, and roasted beans more than the green.
+
+## 15. Shared inventory & shop sessions (M3)
+- One inventory (`economy.inventory`) holds seeds, cherries, green and roasted beans; the café will consume from the same stacks.
+- `ShopSessionService` (`src/systems/shop/`) is shared by the seed stall (`seeds`) and the market (`market`). Opening one closes the other; walking more than 2 tiles away closes it.
+- **HUD:** the right column is `FarmHud` (top) + `StationHud` (bottom, context: market → selected machine → inventory). Both issue commands only through narrow interfaces (`FarmUiCommands`, `StationUiCommands`).
+- **Save schema v2** adds `processing` and `market`; `SAVE_MIGRATIONS[1]` upgrades v1 saves.

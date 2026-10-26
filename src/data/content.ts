@@ -1,6 +1,8 @@
 import economy from './config/economy.json';
 import gameplay from './config/gameplay.json';
 import items from './config/items.json';
+import market from './config/market.json';
+import processing from './config/processing.json';
 import objectTypes from './config/objectTypes.json';
 import seeds from './config/seeds.json';
 import farmMap from './maps/farm.json';
@@ -10,6 +12,8 @@ import type { FarmConfig } from '../gameplay/farm/FarmService';
 import type { SeedTable } from '../gameplay/farm/plotModel';
 import type { MapData, ObjectTypeTable } from '../gameplay/world/types';
 import type { ItemTable } from '../systems/economy/TransactionService';
+import type { ProcessingConfig } from '../gameplay/processing/ProcessingService';
+import type { MarketConfig } from '../gameplay/market/MarketService';
 
 export interface EconomyConfig {
   startingCoins: number;
@@ -27,6 +31,8 @@ export interface GameContent {
   items: ItemTable;
   seeds: SeedTable;
   objectTypes: ObjectTypeTable;
+  processing: ProcessingConfig;
+  market: MarketConfig;
   maps: Record<string, MapData>;
 }
 
@@ -40,6 +46,18 @@ export function validateContent(c: GameContent): string[] {
     if (!(s.purchaseCost >= 0) || !(s.yield >= 1)) p.push(`seed ${id}: cost/yield out of range`);
   }
   for (const id of Object.keys(c.economy.startingItems)) if (!c.items[id]) p.push(`startingItems: unknown item ${id}`);
+  for (const [id, r] of Object.entries(c.processing.recipes)) {
+    if (!c.processing.equipment[r.equipment]) p.push(`recipe ${id}: unknown equipment ${r.equipment}`);
+    if (!c.items[r.input.itemId]) p.push(`recipe ${id}: unknown input ${r.input.itemId}`);
+    if (!c.items[r.output.itemId]) p.push(`recipe ${id}: unknown output ${r.output.itemId}`);
+    if (!(r.input.qty >= 1 && r.output.qty >= 1 && r.durationMs > 0)) p.push(`recipe ${id}: quantities/duration out of range`);
+    if (!(r.output.itemId in c.market.basePrices)) p.push(`recipe ${id}: output ${r.output.itemId} has no market price`);
+  }
+  for (const [type, e] of Object.entries(c.processing.equipment)) {
+    if (e.levels.some((l, i) => l.level !== i + 1)) p.push(`equipment ${type}: levels must be 1..n`);
+    if (!c.objectTypes[type]) p.push(`equipment ${type}: no object type`);
+  }
+  for (const id of Object.keys(c.market.basePrices)) if (!c.items[id]) p.push(`market: unknown item ${id}`);
   const levels = c.economy.farm.soilLevels.map((l) => l.level);
   if (levels[0] !== 1 || levels.some((l, i) => l !== i + 1)) p.push('soilLevels must be 1..n in order');
   return p;
@@ -51,6 +69,8 @@ export const CONTENT: GameContent = {
   items: items as ItemTable,
   seeds: seeds as SeedTable,
   objectTypes: objectTypes as ObjectTypeTable,
+  processing: processing as ProcessingConfig,
+  market: market as MarketConfig,
   maps: { farm: farmMap as MapData, sandbox: sandboxMap as MapData },
 };
 

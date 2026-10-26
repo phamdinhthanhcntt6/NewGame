@@ -30,6 +30,8 @@ export interface TestBridge {
   /** Page coordinates of a named HUD button, or null if absent/hidden. */
   buttonClient(name: string): { x: number; y: number; enabled: boolean } | null;
   saveNow(): boolean;
+  /** Dev-only cheat for UI-focused tests: grants items through the TransactionService (reason "debug:grant"). */
+  grantItems(itemId: string, qty: number, quality?: number): boolean;
 }
 
 declare global {
@@ -87,12 +89,13 @@ export function installTestBridge(scene: WorldScene): void {
     },
     buttonClient: (name) => {
       const hud = scene.scene.get('HudScene') as HudScene;
-      const b = hud.farmHud?.buttons.get(name);
+      const b = hud.button(name);
       if (!b || !b.text.visible) return null;
       const bounds = b.text.getBounds();
       const r = canvasRect();
       return { x: r.left + (bounds.centerX * r.width) / scene.scale.width, y: r.top + (bounds.centerY * r.height) / scene.scale.height, enabled: b.isEnabled };
     },
     saveNow: () => scene.autosave.saveNow(),
+    grantItems: (itemId, qty, quality = 50) => scene.sim.tx.execute({ reason: 'debug:grant', items: [{ itemId, qty, quality }] }).ok,
   };
 }

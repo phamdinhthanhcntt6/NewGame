@@ -277,6 +277,30 @@
       "props": {
         "price": 500
       }
+    },
+    {
+      "id": "drying_rack_1",
+      "type": "drying_rack",
+      "x": 13,
+      "y": 5
+    },
+    {
+      "id": "drying_rack_2",
+      "type": "drying_rack",
+      "x": 13,
+      "y": 7
+    },
+    {
+      "id": "roaster",
+      "type": "roaster",
+      "x": 14,
+      "y": 9
+    },
+    {
+      "id": "market",
+      "type": "market_stall",
+      "x": 2,
+      "y": 10
     }
   ]
 }

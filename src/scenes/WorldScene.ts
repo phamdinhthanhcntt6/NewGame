@@ -6,6 +6,7 @@ import type { GameSimulation } from '../gameplay/GameSimulation';
 import { PlaceholderRenderer } from '../components/render/PlaceholderRenderer';
 import type { ActorView } from '../components/render/WorldRenderer';
 import { PlotPresenter } from '../components/presenters/PlotPresenter';
+import { EquipmentPresenter } from '../components/presenters/EquipmentPresenter';
 import { FeedbackPresenter } from '../ui/FeedbackPresenter';
 import { installTestBridge } from '../core/testBridge';
 import { screenToWorld } from '../utils/iso';
@@ -31,6 +32,7 @@ export class WorldScene extends Phaser.Scene {
   private playerView!: ActorView;
   private feedback!: FeedbackPresenter;
   private plots!: PlotPresenter;
+  private equipment!: EquipmentPresenter;
   private hoveredObject: string | null = null;
   private launchData!: WorldSceneData;
 
@@ -72,6 +74,7 @@ export class WorldScene extends Phaser.Scene {
     this.playerView = this.worldRenderer.createActor('player', 'player');
     this.feedback = new FeedbackPresenter(this.sim.bus, world, this.worldRenderer, () => this.sim.player.pos);
     this.plots = new PlotPresenter(this.worldRenderer, CONTENT.seeds);
+    this.equipment = new EquipmentPresenter(this.worldRenderer);
 
     this.input.mouse?.disableContextMenu();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -116,6 +119,7 @@ export class WorldScene extends Phaser.Scene {
     });
     this.worldRenderer.setPathPreview(s.player.waypoints.length ? [s.player.pos, ...s.player.waypoints] : null);
     this.plots.sync(s.farm.plots);
+    this.equipment.sync(s.processing.equipment);
     this.autosave.update(time);
   }
 

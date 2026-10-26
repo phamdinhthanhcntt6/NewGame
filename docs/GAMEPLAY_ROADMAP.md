@@ -15,8 +15,8 @@
 |---|---|---|---|
 | **M1** | Core engine, movement, interactions | **Done 2026-10-26** | Click/tap-to-move, A*, collision, auto-approach, interaction queue, cancellation, 5 player states, click-what-you-see hit-testing, render adapter. 41 unit + 8 E2E tests pass |
 | **M2** | Full farming loop | **Done 2026-10-26** | Plot FSM `EMPTY→PREPARED→PLANTED→GROWING→READY→HARVESTED`; locked land + purchase; soil upgrades; seed shop; watering can + well; timestamp growth that survives reload; harvest → inventory exactly once; central TransactionService; versioned localStorage save. 78 unit + 13 E2E tests pass |
-| M3 | Processing, selling, shared inventory | Next | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
-| M4 | Customer AI & orders | — | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
+| **M3** | Processing, selling, shared inventory | **Done 2026-10-26** | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
+| M4 | Customer AI & orders | Next | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
 | M5 | Brewing mini-game & serving | — | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
 | M6 | Ratings, economy, progression | — | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
 | M7 | Furniture & decoration | — | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
@@ -50,3 +50,16 @@
 - **Not in M2:** processing, market selling, transaction-history UI (M3); levels and seed unlock enforcement (M6); offline catch-up limits beyond the dry-quality penalty.
 - **Known issues:** GAMEPLAY_TEST_PLAN §5.
 - **M3 unblocked:** yes. Processing equipment is new object types + handlers that consume cherries through `TransactionService`; selling is a market service over the same inventory.
+
+## M3 report (2026-10-26)
+- **Playable flow** (farm map):
+  1. Harvest cherries, then click a **drying rack**: the player loads a batch (inputs leave the bag immediately).
+  2. When it shows "xong!", click it again to collect green beans.
+  3. Click the **roaster** to roast green beans the same way.
+  4. Walk to the blue **market** stall. The station panel lists everything sellable you own, with the live unit price; sell 1, 10 or everything.
+  5. Selecting a machine shows its status, the recipe it prefers next, and its upgrade.
+- **Evidence:** [equipment panel with machines running](screenshots/m3-equipment.png) · [market panel](screenshots/m3-market.png)
+- **Delivered:** GAMEPLAY_SYSTEMS §13–§15. Save schema bumped to **v2** with a real v1→v2 migration (M2 saves load into M3).
+- **Totals:** 100 unit + 17 E2E tests; 8 more mutation checks caught.
+- **Known issues:** GAMEPLAY_TEST_PLAN §5.
+- **M4 unblocked:** yes. Roasted beans sit in the shared inventory, ready for café recipes. Customers reuse `Actor` + `InteractionService` + A*.

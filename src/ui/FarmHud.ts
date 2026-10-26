@@ -5,7 +5,6 @@ import { t } from '../core/i18n';
 import type { FarmResult } from '../gameplay/farm/FarmService';
 import type { SeedTable } from '../gameplay/farm/plotModel';
 import type { SimulationSnapshot } from '../gameplay/GameSimulation';
-import type { ItemTable } from '../systems/economy/TransactionService';
 import { Button } from './widgets/Button';
 
 /** The only commands the farm UI may issue. Implemented by FarmService. */
@@ -17,7 +16,9 @@ export interface FarmUiCommands {
   nextSoilCost(id: string): number | null;
 }
 
-const PANEL_W = 330;
+export const PANEL_W = 330;
+/** Height of the farm panel; the station panel stacks below it. */
+export const FARM_HUD_HEIGHT = 354;
 const TEXT = { fontFamily: 'monospace', fontSize: '13px', color: '#f6e8cc' };
 
 /**
@@ -32,7 +33,6 @@ export class FarmHud {
   private readonly shopLine: Phaser.GameObjects.Text;
   private readonly plotInfo: Phaser.GameObjects.Text;
   private readonly message: Phaser.GameObjects.Text;
-  private readonly inventory: Phaser.GameObjects.Text;
   private readonly seedRows: Array<{ id: string; select: Button; buy1: Button; buy5: Button }> = [];
   private readonly plotBuy: Button;
   private readonly plotUpgrade: Button;
@@ -44,11 +44,10 @@ export class FarmHud {
     bus: EventBus<GameEvents>,
     private readonly commands: FarmUiCommands,
     private readonly seeds: SeedTable,
-    private readonly items: ItemTable,
   ) {
     this.root = scene.add.container(0, 8).setDepth(1000);
     // Background swallows clicks so they never fall through to the world.
-    const bg = scene.add.rectangle(0, 0, PANEL_W, 560, 0x1d1612, 0.88).setOrigin(0, 0).setInteractive();
+    const bg = scene.add.rectangle(0, 0, PANEL_W, FARM_HUD_HEIGHT, 0x1d1612, 0.88).setOrigin(0, 0).setInteractive();
     this.root.add(bg);
     let y = 8;
     const line = (text = '', style = TEXT) => {
@@ -79,10 +78,6 @@ export class FarmHud {
     this.plotUpgrade = this.button(150, y, '', () => this.selectedPlot && this.report(commands.upgradeSoil(this.selectedPlot), t('hud.soilUpgraded')), 'plot.upgrade');
     y += 32;
     this.message = line('', { ...TEXT, color: '#9fe08a' });
-    y += 22;
-    line(t('hud.inventory'), { ...TEXT, color: '#f2c14e' });
-    y += 20;
-    this.inventory = line();
 
     this.offs.push(
       bus.on('world:objectSelected', (e) => {
@@ -118,7 +113,7 @@ export class FarmHud {
       t('hud.capacity', { n: eco.itemCount, max: eco.capacity }),
     ].join('\n'));
 
-    const shopOpen = farm.shop === 'seeds';
+    const shopOpen = s.shop === 'seeds';
     for (const r of this.seedRows) {
       const seed = this.seeds[r.id]!;
       const owned = eco.inventory[seed.seedItem]?.qty ?? 0;
@@ -146,11 +141,6 @@ export class FarmHud {
       const canUpgrade = !plot.locked && cost !== null && ['EMPTY', 'PREPARED', 'HARVESTED'].includes(plot.phase);
       this.plotUpgrade.setVisible(!plot.locked && cost !== null).setLabel(t('hud.upgradeSoil', { price: cost ?? 0 })).setEnabled(canUpgrade && eco.coins >= (cost ?? 0));
     }
-
-    const inv = Object.entries(eco.inventory)
-      .map(([id, st]) => `${this.items[id]?.label ?? id}: ${st.qty}  (Q${Math.round(st.quality)})`)
-      .join('\n');
-    set(this.inventory, inv || t('hud.empty'));
   }
 
   destroy(): void {

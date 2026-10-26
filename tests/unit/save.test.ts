@@ -118,17 +118,35 @@ describe('save / load', () => {
     expect(storage.get('tcss.save.slot1')).toBe(raw);
   });
 
-  it('runs registered migrations in order up to the current version', () => {
+  it('migrates a real v1 (M2-era) save to v2: farm progress kept, processing/market added', () => {
     const { sim, clock } = farmSim();
     const storage = new MemoryStorage();
-    const v1 = structuredClone(sim.captureState());
+    use(sim, P);
+    use(sim, P);
+    const v1 = structuredClone(sim.captureState()) as unknown as Record<string, unknown>;
+    delete v1.processing;
+    delete v1.market;
+    v1.schemaVersion = 1;
     storage.set('tcss.save.slot1', JSON.stringify(v1));
-    const saves = new SaveService(storage, 'tcss.save.slot1', { 1: (raw) => ({ ...raw, migratedNote: 'v2' }) }, 2);
-    const r = saves.load(clock.now());
+    const r = new SaveService(storage).load(clock.now());
     expect(r).toMatchObject({ status: 'ok', migratedFrom: 1 });
-    if (r.status === 'ok') {
-      expect(r.state.schemaVersion).toBe(2);
-      expect((r.state as unknown as Record<string, unknown>).migratedNote).toBe('v2');
-    }
+    if (r.status !== 'ok') return;
+    expect(r.state.schemaVersion).toBe(2);
+    expect(r.state.processing).toEqual({ equipment: {}, selectedRecipe: {} });
+    const resumed = farmSim({ state: r.state, clock }).sim;
+    expect(resumed.farm.plot(P)!.phase).toBe('PLANTED');
+    expect(resumed.processing.allViews().map((e) => e.id).sort()).toEqual(['drying_rack_1', 'drying_rack_2', 'roaster']);
+  });
+
+  it('runs a chain of migrations in order up to the current version', () => {
+    const { sim, clock } = farmSim();
+    const storage = new MemoryStorage();
+    storage.set('tcss.save.slot1', JSON.stringify(sim.captureState())); // v2
+    const order: number[] = [];
+    const saves = new SaveService(storage, 'tcss.save.slot1', { 2: (raw) => (order.push(2), { ...raw, note: 'v3' }), 3: (raw) => (order.push(3), { ...raw, note: `${String(raw.note)}→v4` }) }, 4);
+    const r = saves.load(clock.now());
+    expect(r).toMatchObject({ status: 'ok', migratedFrom: 2 });
+    expect(order).toEqual([2, 3]);
+    if (r.status === 'ok') expect((r.state as unknown as Record<string, unknown>).note).toBe('v3→v4');
   });
 });

@@ -119,6 +119,42 @@
       ]
     }
   },
+  "drying_rack": {
+    "label": "Drying rack",
+    "footprint": { "w": 2, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "collect", "label": "Collect", "durationMs": 600, "handler": "process.collect", "params": {} },
+        { "id": "load", "label": "Load batch", "durationMs": 900, "handler": "process.load", "params": {} }
+      ]
+    }
+  },
+  "roaster": {
+    "label": "Roaster",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "collect", "label": "Collect", "durationMs": 600, "handler": "process.collect", "params": {} },
+        { "id": "load", "label": "Load batch", "durationMs": 900, "handler": "process.load", "params": {} }
+      ]
+    }
+  },
+  "market_stall": {
+    "label": "Market",
+    "footprint": { "w": 2, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": ["N"],
+      "actions": [
+        { "id": "open_market", "label": "Open market", "durationMs": 0, "handler": "shop.open", "params": { "shopId": "market" } }
+      ]
+    }
+  },
   "farmhouse": {
     "label": "Farmhouse",
     "footprint": { "w": 3, "h": 2 },

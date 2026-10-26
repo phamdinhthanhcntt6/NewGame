@@ -22,11 +22,24 @@ export const PLACEHOLDER_STYLES: Record<string, PlaceholderStyle> = {
   well: { color: 0x7d8fa3, height: 34 },
   seed_stall: { color: 0xc9783a, height: 38 },
   farmhouse: { color: 0xa0522d, height: 70 },
+  drying_rack: { color: 0xb59466, height: 14 },
+  roaster: { color: 0x4a4a52, height: 44 },
+  market_stall: { color: 0x3f7fb5, height: 36 },
   tree: { color: 0x2f6b34, height: 72 },
 };
 
 /** Per-variant overrides (ObjectVisual.variant), e.g. plot states. */
 export const PLACEHOLDER_VARIANTS: Record<string, Record<string, PlaceholderStyle>> = {
+  drying_rack: {
+    idle: { color: 0xb59466, height: 14 },
+    working: { color: 0xa8483a, height: 16 },
+    done: { color: 0x6d8f3a, height: 16 },
+  },
+  roaster: {
+    idle: { color: 0x4a4a52, height: 44 },
+    working: { color: 0x8a3b22, height: 44 },
+    done: { color: 0x5d7f2f, height: 44 },
+  },
   farm_plot: {
     locked: { color: 0x6f6a5f, height: 2 },
     empty: { color: 0x9b7b52, height: 4 },
