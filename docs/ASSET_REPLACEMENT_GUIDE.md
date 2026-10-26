@@ -25,6 +25,9 @@ Positions in these contracts are **world tile units**. Converting them to pixels
 
 **Sprite pivot rule:** an object's anchor is the screen position of its footprint's **bottom corner** (`worldToScreen({x: f.x + f.w, y: f.y + f.h})`). An actor's anchor is its feet (`worldToScreen(pos)`).
 
+### Object visual states (M2+)
+`setObjectVisual(id, { variant, caption?, progress? })` carries a *semantic* state. Map each `type × variant` to frames. For `farm_plot` the variants are `locked`, `empty`, `prepared`, `thirsty`, `growing_0`…`growing_3`, `ready`, `harvested` (these are the ART_BIBLE crop stages plus soil states). Captions and progress bars are placeholder UI; a production renderer may hide captions and show icons instead. Variants are produced by presenters (`src/components/presenters/`), never by gameplay code.
+
 ## 3. Swapping UI
 - `DebugPanel` and `FeedbackPresenter` read snapshots and events only. A production HUD subscribes to the same events and snapshots.
 - All strings come from `t(key)` and `data/locales/*.json`.

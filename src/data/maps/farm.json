@@ -1,0 +1,282 @@
+{
+  "id": "farm",
+  "name": "Nông trại cà phê (M2)",
+  "legend": {
+    "#": {
+      "kind": "wall",
+      "walkable": false
+    },
+    ".": {
+      "kind": "grass",
+      "walkable": true
+    }
+  },
+  "terrain": [
+    "##################",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "#................#",
+    "##################"
+  ],
+  "playerStart": {
+    "x": 4,
+    "y": 5
+  },
+  "objects": [
+    {
+      "id": "seed_stall",
+      "type": "seed_stall",
+      "x": 2,
+      "y": 2
+    },
+    {
+      "id": "well",
+      "type": "well",
+      "x": 2,
+      "y": 7
+    },
+    {
+      "id": "farmhouse",
+      "type": "farmhouse",
+      "x": 13,
+      "y": 2
+    },
+    {
+      "id": "tree_1",
+      "type": "tree",
+      "x": 15,
+      "y": 10
+    },
+    {
+      "id": "tree_2",
+      "type": "tree",
+      "x": 2,
+      "y": 11
+    },
+    {
+      "id": "plot_r0_c0",
+      "type": "farm_plot",
+      "x": 6,
+      "y": 4,
+      "props": {
+        "price": 0
+      }
+    },
+    {
+      "id": "plot_r0_c1",
+      "type": "farm_plot",
+      "x": 7,
+      "y": 4,
+      "props": {
+        "price": 0
+      }
+    },
+    {
+      "id": "plot_r0_c2",
+      "type": "farm_plot",
+      "x": 8,
+      "y": 4,
+      "props": {
+        "price": 0
+      }
+    },
+    {
+      "id": "plot_r0_c3",
+      "type": "farm_plot",
+      "x": 9,
+      "y": 4,
+      "props": {
+        "price": 0
+      }
+    },
+    {
+      "id": "plot_r0_c4",
+      "type": "farm_plot",
+      "x": 10,
+      "y": 4,
+      "props": {
+        "price": 0
+      }
+    },
+    {
+      "id": "plot_r0_c5",
+      "type": "farm_plot",
+      "x": 11,
+      "y": 4,
+      "props": {
+        "price": 0
+      }
+    },
+    {
+      "id": "plot_r1_c0",
+      "type": "farm_plot",
+      "x": 6,
+      "y": 6,
+      "props": {
+        "price": 150
+      }
+    },
+    {
+      "id": "plot_r1_c1",
+      "type": "farm_plot",
+      "x": 7,
+      "y": 6,
+      "props": {
+        "price": 150
+      }
+    },
+    {
+      "id": "plot_r1_c2",
+      "type": "farm_plot",
+      "x": 8,
+      "y": 6,
+      "props": {
+        "price": 150
+      }
+    },
+    {
+      "id": "plot_r1_c3",
+      "type": "farm_plot",
+      "x": 9,
+      "y": 6,
+      "props": {
+        "price": 150
+      }
+    },
+    {
+      "id": "plot_r1_c4",
+      "type": "farm_plot",
+      "x": 10,
+      "y": 6,
+      "props": {
+        "price": 150
+      }
+    },
+    {
+      "id": "plot_r1_c5",
+      "type": "farm_plot",
+      "x": 11,
+      "y": 6,
+      "props": {
+        "price": 150
+      }
+    },
+    {
+      "id": "plot_r2_c0",
+      "type": "farm_plot",
+      "x": 6,
+      "y": 8,
+      "props": {
+        "price": 300
+      }
+    },
+    {
+      "id": "plot_r2_c1",
+      "type": "farm_plot",
+      "x": 7,
+      "y": 8,
+      "props": {
+        "price": 300
+      }
+    },
+    {
+      "id": "plot_r2_c2",
+      "type": "farm_plot",
+      "x": 8,
+      "y": 8,
+      "props": {
+        "price": 300
+      }
+    },
+    {
+      "id": "plot_r2_c3",
+      "type": "farm_plot",
+      "x": 9,
+      "y": 8,
+      "props": {
+        "price": 300
+      }
+    },
+    {
+      "id": "plot_r2_c4",
+      "type": "farm_plot",
+      "x": 10,
+      "y": 8,
+      "props": {
+        "price": 300
+      }
+    },
+    {
+      "id": "plot_r2_c5",
+      "type": "farm_plot",
+      "x": 11,
+      "y": 8,
+      "props": {
+        "price": 300
+      }
+    },
+    {
+      "id": "plot_r3_c0",
+      "type": "farm_plot",
+      "x": 6,
+      "y": 10,
+      "props": {
+        "price": 500
+      }
+    },
+    {
+      "id": "plot_r3_c1",
+      "type": "farm_plot",
+      "x": 7,
+      "y": 10,
+      "props": {
+        "price": 500
+      }
+    },
+    {
+      "id": "plot_r3_c2",
+      "type": "farm_plot",
+      "x": 8,
+      "y": 10,
+      "props": {
+        "price": 500
+      }
+    },
+    {
+      "id": "plot_r3_c3",
+      "type": "farm_plot",
+      "x": 9,
+      "y": 10,
+      "props": {
+        "price": 500
+      }
+    },
+    {
+      "id": "plot_r3_c4",
+      "type": "farm_plot",
+      "x": 10,
+      "y": 10,
+      "props": {
+        "price": 500
+      }
+    },
+    {
+      "id": "plot_r3_c5",
+      "type": "farm_plot",
+      "x": 11,
+      "y": 10,
+      "props": {
+        "price": 500
+      }
+    }
+  ]
+}

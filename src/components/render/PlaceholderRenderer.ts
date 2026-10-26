@@ -1,8 +1,8 @@
 import Phaser from 'phaser';
 import { actorDepth, floorDepth, footprintDepth, worldToScreen, type ScreenPos } from '../../utils/iso';
 import type { Footprint, TilePos, WorldPos } from '../../utils/tile';
-import { DEFAULT_STYLE, FEEDBACK_COLORS, PLACEHOLDER_STYLES, PLAYER_COLOR, TERRAIN_COLORS } from './placeholderStyles';
-import type { ActorView, ActorViewState, FeedbackKind, FloorTileView, ObjectViewData, WorldRenderer } from './WorldRenderer';
+import { DEFAULT_STYLE, FEEDBACK_COLORS, PLACEHOLDER_STYLES, PLACEHOLDER_VARIANTS, PLAYER_COLOR, TERRAIN_COLORS } from './placeholderStyles';
+import type { ActorView, ActorViewState, FeedbackKind, FloorTileView, ObjectViewData, ObjectVisual, WorldRenderer } from './WorldRenderer';
 
 const shade = (c: number, f: number): number => {
   const r = Math.min(255, Math.round(((c >> 16) & 0xff) * f));
@@ -29,6 +29,21 @@ function drawBox(g: Phaser.GameObjects.Graphics, f: Footprint, color: number, he
   g.fillPoints([v(top, height), v(right, height), v(bottom, height), v(left, height)], true);
   g.lineStyle(1, shade(color, 0.45), 0.8);
   g.strokePoints([v(top, height), v(right, height), v(bottom, height), v(left, height)], true);
+}
+
+/** Redraw only when something visible changes (progress quantised to 2%). */
+const visualKey = (v: ObjectVisual): string =>
+  [v.variant, v.caption ?? '', v.progress == null ? '' : Math.round(v.progress * 50)].join('|');
+
+interface ObjectEntry {
+  data: ObjectViewData;
+  depth: number;
+  box: Phaser.GameObjects.Graphics;
+  label: Phaser.GameObjects.Text;
+  bar: Phaser.GameObjects.Graphics;
+  outline: Phaser.Geom.Polygon;
+  height?: number;
+  visualKey: string;
 }
 
 class PlaceholderActorView implements ActorView {
@@ -79,10 +94,7 @@ class PlaceholderActorView implements ActorView {
 
 /** Geometric placeholder implementation of WorldRenderer (M1–M12 gameplay phase). */
 export class PlaceholderRenderer implements WorldRenderer {
-  private readonly objectGfx = new Map<
-    string,
-    { box: Phaser.GameObjects.Graphics; label: Phaser.GameObjects.Text; data: ObjectViewData; outline: Phaser.Geom.Polygon; depth: number }
-  >();
+  private readonly objectGfx = new Map<string, ObjectEntry>();
   private readonly highlight: Phaser.GameObjects.Graphics;
   private readonly path: Phaser.GameObjects.Graphics;
   private readonly hover: Phaser.GameObjects.Graphics;
@@ -114,40 +126,73 @@ export class PlaceholderRenderer implements WorldRenderer {
   }
 
   addObject(o: ObjectViewData): void {
-    const style = PLACEHOLDER_STYLES[o.type] ?? DEFAULT_STYLE;
     const depth = footprintDepth(o.footprint);
-    const box = this.scene.add.graphics().setDepth(depth);
-    drawBox(box, o.footprint, style.color, style.height);
-    const c = worldToScreen({ x: o.footprint.x + o.footprint.w / 2, y: o.footprint.y + o.footprint.h / 2 });
-    const label = this.scene.add
-      .text(c.x, c.y - style.height - 4, o.label, { fontFamily: 'monospace', fontSize: '11px', color: o.interactive ? '#1d1612' : '#ffffffaa', backgroundColor: o.interactive ? '#fff3d6cc' : undefined })
-      .setOrigin(0.5, 1)
-      .setDepth(depth + 0.05);
-    // Silhouette of the extruded box: top face corners raised by height, plus the floor corners in front.
+    const entry: ObjectEntry = {
+      data: o,
+      depth,
+      box: this.scene.add.graphics().setDepth(depth),
+      label: this.scene.add
+        .text(0, 0, '', { fontFamily: 'monospace', fontSize: '11px', color: o.interactive ? '#1d1612' : '#ffffffaa', backgroundColor: o.interactive ? '#fff3d6cc' : undefined })
+        .setOrigin(0.5, 1)
+        .setDepth(depth + 0.05),
+      bar: this.scene.add.graphics().setDepth(depth + 0.06),
+      outline: new Phaser.Geom.Polygon([]),
+      visualKey: '',
+    };
+    this.objectGfx.set(o.id, entry);
+    this.drawObject(entry, { variant: 'default' });
+  }
+
+  setObjectVisual(id: string, visual: ObjectVisual): void {
+    const e = this.objectGfx.get(id);
+    if (!e) return;
+    if (visualKey(visual) === e.visualKey) return; // nothing visible changed
+    this.drawObject(e, visual);
+  }
+
+  private drawObject(e: ObjectEntry, visual: ObjectVisual): void {
+    const o = e.data;
+    const style = PLACEHOLDER_VARIANTS[o.type]?.[visual.variant] ?? PLACEHOLDER_STYLES[o.type] ?? DEFAULT_STYLE;
     const f = o.footprint;
     const h = style.height;
+    e.box.clear();
+    drawBox(e.box, f, style.color, h);
+    const c = worldToScreen({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
+    e.label.setText(visual.caption ?? o.label).setPosition(c.x, c.y - h - 4);
+    e.bar.clear();
+    if (visual.progress != null) {
+      const w = 44;
+      e.bar.fillStyle(0x1b1b1b, 0.85).fillRect(c.x - w / 2, c.y - h + 2, w, 5);
+      e.bar.fillStyle(0x6db55a, 1).fillRect(c.x - w / 2 + 1, c.y - h + 3, (w - 2) * Math.max(0, Math.min(1, visual.progress)), 3);
+    }
+    // Silhouette of the extruded box: top face corners raised by height, plus the floor corners in front.
     const top = worldToScreen({ x: f.x, y: f.y });
     const right = worldToScreen({ x: f.x + f.w, y: f.y });
     const bottom = worldToScreen({ x: f.x + f.w, y: f.y + f.h });
     const left = worldToScreen({ x: f.x, y: f.y + f.h });
-    const outline = new Phaser.Geom.Polygon([v(top, h), v(right, h), v(right), v(bottom), v(left), v(left, h)]);
-    this.objectGfx.set(o.id, { box, label, data: o, outline, depth });
+    e.outline = new Phaser.Geom.Polygon([v(top, h), v(right, h), v(right), v(bottom), v(left), v(left, h)]);
+    e.height = h;
+    e.visualKey = visualKey(visual);
   }
 
   objectAtPoint(px: number, py: number): string | null {
-    let best: { id: string; depth: number } | null = null;
-    for (const [id, g] of this.objectGfx) {
-      const hit = Phaser.Geom.Polygon.Contains(g.outline, px, py) || g.label.getBounds().contains(px, py);
-      if (hit && (!best || g.depth > best.depth)) best = { id, depth: g.depth };
-    }
-    return best?.id ?? null;
+    // Shapes first (front-most wins); labels only when no shape is under the pointer,
+    // so a label floating over a neighbour never steals that neighbour's click.
+    const pick = (test: (e: ObjectEntry) => boolean): string | null => {
+      let best: { id: string; depth: number } | null = null;
+      for (const [id, e] of this.objectGfx) if (test(e) && (!best || e.depth > best.depth)) best = { id, depth: e.depth };
+      return best?.id ?? null;
+    };
+    return pick((e) => Phaser.Geom.Polygon.Contains(e.outline, px, py)) ?? pick((e) => e.label.getBounds().contains(px, py));
   }
 
   objectClickPoint(id: string): { x: number; y: number } | null {
-    const g = this.objectGfx.get(id);
-    if (!g) return null;
-    const b = g.label.getBounds();
-    return { x: b.centerX, y: b.centerY };
+    const e = this.objectGfx.get(id);
+    if (!e) return null;
+    // Centre of the top face: always inside the object's own silhouette.
+    const f = e.data.footprint;
+    const c = worldToScreen({ x: f.x + f.w / 2, y: f.y + f.h / 2 });
+    return { x: c.x, y: c.y - (e.height ?? 0) };
   }
 
   removeObject(id: string): void {
@@ -155,6 +200,7 @@ export class PlaceholderRenderer implements WorldRenderer {
     if (!g) return;
     g.box.destroy();
     g.label.destroy();
+    g.bar.destroy();
     this.objectGfx.delete(id);
   }
 
@@ -162,11 +208,10 @@ export class PlaceholderRenderer implements WorldRenderer {
     this.highlight.clear();
     const g = this.objectGfx.get(id);
     if (!on || !g) return;
-    const style = PLACEHOLDER_STYLES[g.data.type] ?? DEFAULT_STYLE;
     const f = g.data.footprint;
     const pts = [worldToScreen({ x: f.x, y: f.y }), worldToScreen({ x: f.x + f.w, y: f.y }), worldToScreen({ x: f.x + f.w, y: f.y + f.h }), worldToScreen({ x: f.x, y: f.y + f.h })];
     this.highlight.lineStyle(3, 0xffe066, 1);
-    this.highlight.strokePoints(pts.map((p) => v(p, style.height)), true);
+    this.highlight.strokePoints(pts.map((p) => v(p, g.height ?? 0)), true);
     this.highlight.strokePoints(pts.map((p) => v(p)), true);
   }
 
@@ -200,15 +245,21 @@ export class PlaceholderRenderer implements WorldRenderer {
     this.scene.tweens.add({ targets: t, y: t.y - 24, alpha: 0, delay: 600, duration: 500, onComplete: () => t.destroy() });
   }
 
-  frame(widthTiles: number, heightTiles: number): void {
+  frame(widthTiles: number, heightTiles: number, insetRight = this.insetRight): void {
     this.bounds = { w: widthTiles, h: heightTiles };
+    this.insetRight = insetRight;
     const cam = this.scene.cameras.main;
     const c = worldToScreen({ x: widthTiles / 2, y: heightTiles / 2 });
     const pxW = (widthTiles + heightTiles) * 64;
     const pxH = (widthTiles + heightTiles) * 32 + 80;
-    cam.setZoom(Math.min(cam.width / pxW, cam.height / pxH) * 0.92);
-    cam.centerOn(c.x, c.y - 20);
+    const availW = Math.max(200, cam.width - insetRight);
+    const zoom = Math.min(availW / pxW, cam.height / pxH) * 0.92;
+    cam.setZoom(zoom);
+    // Centre the map in the area left of the UI panel.
+    cam.centerOn(c.x + Math.min(insetRight, cam.width - 200) / 2 / zoom, c.y - 20);
   }
+
+  private insetRight = 0;
 
   reframe(): void {
     this.frame(this.bounds.w, this.bounds.h);

@@ -1,0 +1,10 @@
+{
+  "seed_robusta": { "label": "Hạt giống Robusta", "category": "seed" },
+  "seed_arabica": { "label": "Hạt giống Arabica", "category": "seed" },
+  "seed_culi": { "label": "Hạt giống Culi", "category": "seed" },
+  "cherry_robusta": { "label": "Quả cà phê Robusta", "category": "cherry" },
+  "cherry_arabica": { "label": "Quả cà phê Arabica", "category": "cherry" },
+  "cherry_culi": { "label": "Quả cà phê Culi", "category": "cherry" },
+  "test_cup": { "label": "Cốc thử", "category": "debug" },
+  "box": { "label": "Hộp", "category": "debug" }
+}

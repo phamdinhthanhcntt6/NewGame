@@ -14,8 +14,8 @@
 | # | Milestone | Status | Exit criteria (summary) |
 |---|---|---|---|
 | **M1** | Core engine, movement, interactions | **Done 2026-10-26** | Click/tap-to-move, A*, collision, auto-approach, interaction queue, cancellation, 5 player states, click-what-you-see hit-testing, render adapter. 41 unit + 8 E2E tests pass |
-| M2 | Full farming loop | Next | Plot FSM `EMPTY→PREPARED→PLANTED→GROWING→READY→HARVESTED`; locked land + purchase; watering; timestamp growth that survives reload; harvest → inventory |
-| M3 | Processing, selling, shared inventory | — | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
+| **M2** | Full farming loop | **Done 2026-10-26** | Plot FSM `EMPTY→PREPARED→PLANTED→GROWING→READY→HARVESTED`; locked land + purchase; soil upgrades; seed shop; watering can + well; timestamp growth that survives reload; harvest → inventory exactly once; central TransactionService; versioned localStorage save. 78 unit + 13 E2E tests pass |
+| M3 | Processing, selling, shared inventory | Next | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
 | M4 | Customer AI & orders | — | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
 | M5 | Brewing mini-game & serving | — | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
 | M6 | Ratings, economy, progression | — | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
@@ -33,3 +33,20 @@
 - **Not in M1 (by design):** inventory, currency, saving, customers, farming. The machine/table/crate/shelf actions are **sandbox test actions** that prove the interaction framework; they are not economy features.
 - **Known issues:** see GAMEPLAY_TEST_PLAN §5.
 - **M2 unblocked:** yes. Farming adds `farm.*` action handlers and a plot model on top of the M1 interaction and navigation services.
+
+## M2 report (2026-10-26)
+- **Playable flow:** `npm run dev` → http://localhost:5180 (the farm is now the default map; `?map=sandbox` opens the M1 sandbox).
+  1. Click an owned plot (top row) and the player walks over and prepares the soil.
+  2. Click it again to plant the selected seed (HUD "Hạt giống"); click again to water it.
+  3. Wait: Robusta needs 2 waterings over 2 min. A thirsty plot turns pale and says "cần tưới".
+  4. Water again, wait until the plot turns red ("chín!"), then click to harvest. The cherries land in "Túi đồ".
+  5. Click again to clear and prepare the plot for replanting.
+  6. Seeds: walk to the orange seed stall; the HUD buy buttons become active while you stand nearby.
+  7. Can empty? Click the well. Locked plots: click one, then "Mua đất" in the HUD. Owned empty plots can be upgraded ("Nâng cấp").
+  8. Progress is saved automatically (and when the tab is hidden or closed). Reloading resumes exactly, including crop growth while the game was closed.
+- **Evidence:** [farm with ripe, thirsty and locked plots, HUD](screenshots/m2-farm.png)
+- **Delivered:** GAMEPLAY_SYSTEMS §9–§12.
+- **Pulled forward from later milestones** (needed for a correct M2): a minimal central `TransactionService` (M6 extends it) and a versioned save with corruption handling (M11 hardens it).
+- **Not in M2:** processing, market selling, transaction-history UI (M3); levels and seed unlock enforcement (M6); offline catch-up limits beyond the dry-quality penalty.
+- **Known issues:** GAMEPLAY_TEST_PLAN §5.
+- **M3 unblocked:** yes. Processing equipment is new object types + handlers that consume cherries through `TransactionService`; selling is a market service over the same inventory.

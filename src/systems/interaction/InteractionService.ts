@@ -110,6 +110,11 @@ export class InteractionService {
     return intent.id;
   }
 
+  /** Report a request as impossible up front (e.g. locked land) without touching the queue or moving. */
+  rejectWithoutMoving(objectId: string, detail: string): void {
+    this.bus.emit('interaction:failed', { intentId: this.nextId++, actorId: this.actor.id, objectId, actionId: null, reason: 'requirementsNotMet', detail });
+  }
+
   /** Stop moving/working and drop the queue. Nothing is rewarded for cancelled work. */
   cancelAll(reason: CancelReason = 'playerCancelled', toRest = true): void {
     if (this.current && !this.current.completed) {
@@ -240,14 +245,17 @@ export class InteractionService {
     const candidates = (obj.def.interaction?.actions ?? []).filter((a) => !actionId || a.id === actionId);
     if (candidates.length === 0) return { fail: 'unknownAction' };
     let firstReason: string | undefined;
+    let firstApplicable: string | undefined;
     for (const action of candidates) {
       const handler = this.actions.get(action.handler);
       if (!handler) return { fail: 'unknownAction', detail: `no handler "${action.handler}"` };
       const r = handler.canStart({ actor: this.actor, object: obj, action });
       if (r.ok) return { action };
       firstReason ??= r.reason;
+      if (r.applicable !== false) firstApplicable ??= r.reason;
     }
-    return firstReason === undefined ? { fail: 'requirementsNotMet' } : { fail: 'requirementsNotMet', detail: firstReason };
+    const detail = firstApplicable ?? firstReason;
+    return detail === undefined ? { fail: 'requirementsNotMet' } : { fail: 'requirementsNotMet', detail };
   }
 
   private complete(c: ActiveIntent): void {

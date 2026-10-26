@@ -81,5 +81,52 @@
         { "id": "read", "label": "Read sign", "durationMs": 0, "handler": "inspect", "params": {} }
       ]
     }
+  },
+  "farm_plot": {
+    "label": "Plot",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "harvest", "label": "Harvest", "durationMs": 1200, "handler": "farm.harvest", "params": {} },
+        { "id": "water", "label": "Water", "durationMs": 600, "handler": "farm.water", "params": {} },
+        { "id": "plant", "label": "Plant", "durationMs": 700, "handler": "farm.plant", "params": {} },
+        { "id": "prepare", "label": "Prepare soil", "durationMs": 1000, "handler": "farm.prepare", "params": {} }
+      ]
+    }
+  },
+  "well": {
+    "label": "Well",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "refill", "label": "Refill can", "durationMs": 800, "handler": "farm.refill", "params": {} }
+      ]
+    }
+  },
+  "seed_stall": {
+    "label": "Seed stall",
+    "footprint": { "w": 2, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": ["S"],
+      "actions": [
+        { "id": "open_shop", "label": "Open seed shop", "durationMs": 0, "handler": "shop.open", "params": { "shopId": "seeds" } }
+      ]
+    }
+  },
+  "farmhouse": {
+    "label": "Farmhouse",
+    "footprint": { "w": 3, "h": 2 },
+    "blocking": true
+  },
+  "tree": {
+    "label": "Tree",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true
   }
 }

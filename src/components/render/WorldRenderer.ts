@@ -31,6 +31,18 @@ export interface ActorViewState {
   progress: number | null;
 }
 
+/**
+ * Visual state of an object (e.g. a plot: "thirsty", "ready"). `variant` is
+ * a semantic key; each renderer decides how it looks (colour now, sprite later).
+ */
+export interface ObjectVisual {
+  variant: string;
+  /** Short status text under/over the object (placeholder UI). */
+  caption?: string;
+  /** 0–1 progress indicator, or null to hide. */
+  progress?: number | null;
+}
+
 export interface ActorView {
   update(s: ActorViewState): void;
   destroy(): void;
@@ -43,6 +55,7 @@ export interface WorldRenderer {
   addObject(o: ObjectViewData): void;
   removeObject(id: string): void;
   setObjectHighlight(id: string, highlighted: boolean): void;
+  setObjectVisual(id: string, visual: ObjectVisual): void;
   /**
    * Front-most object (interactive or not) whose *drawn* shape covers this
    * point (render-space pixels, i.e. camera world point). Players click what
@@ -58,5 +71,6 @@ export interface WorldRenderer {
   /** Short-lived world-space feedback (e.g. "Unreachable" over a tile). */
   showFeedback(at: WorldPos, text: string, kind: FeedbackKind): void;
   /** World point at the centre of the map, for camera framing. */
-  frame(widthTiles: number, heightTiles: number): void;
+  /** `insetRight`: screen px covered by a UI panel on the right, kept clear of the map. */
+  frame(widthTiles: number, heightTiles: number, insetRight?: number): void;
 }

@@ -1,4 +1,6 @@
-import type { SandboxScene } from '../scenes/SandboxScene';
+import type { WorldScene } from '../scenes/WorldScene';
+import type { HudScene } from '../scenes/HudScene';
+import { SystemClock } from './Clock';
 import type { SimulationSnapshot } from '../gameplay/GameSimulation';
 import { worldToScreen } from '../utils/iso';
 import { tileCenter, type TilePos } from '../utils/tile';
@@ -23,6 +25,11 @@ export interface TestBridge {
   objectTiles(id: string): TilePos[];
   setTimeScale(scale: number): void;
   events(): Array<{ type: string; payload: unknown }>;
+  /** Fast-forward the wall clock (crops). Persisted so it survives a page reload. */
+  advanceClock(ms: number): void;
+  /** Page coordinates of a named HUD button, or null if absent/hidden. */
+  buttonClient(name: string): { x: number; y: number; enabled: boolean } | null;
+  saveNow(): boolean;
 }
 
 declare global {
@@ -31,11 +38,11 @@ declare global {
   }
 }
 
-export function installTestBridge(scene: SandboxScene): void {
+export function installTestBridge(scene: WorldScene): void {
   if (import.meta.env.PROD) return;
   const log: Array<{ type: string; payload: unknown }> = [];
   const bus = scene.sim.bus;
-  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged'] as const) {
+  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected'] as const) {
     bus.on(type, (payload) => log.push({ type, payload }));
   }
   const canvasRect = () => scene.game.canvas.getBoundingClientRect();
@@ -72,5 +79,20 @@ export function installTestBridge(scene: SandboxScene): void {
       scene.sim.timeScale = s;
     },
     events: () => log.slice(),
+    advanceClock: (ms) => {
+      const clock = scene.sim.clock;
+      if (!(clock instanceof SystemClock)) throw new Error('advanceClock needs SystemClock');
+      clock.offsetMs += ms;
+      window.localStorage.setItem('tcss.debug.clockOffset', String(clock.offsetMs));
+    },
+    buttonClient: (name) => {
+      const hud = scene.scene.get('HudScene') as HudScene;
+      const b = hud.farmHud?.buttons.get(name);
+      if (!b || !b.text.visible) return null;
+      const bounds = b.text.getBounds();
+      const r = canvasRect();
+      return { x: r.left + (bounds.centerX * r.width) / scene.scale.width, y: r.top + (bounds.centerY * r.height) / scene.scale.height, enabled: b.isEnabled };
+    },
+    saveNow: () => scene.autosave.saveNow(),
   };
 }

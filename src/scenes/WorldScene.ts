@@ -1,35 +1,56 @@
 import Phaser from 'phaser';
-import gameplayConfig from '../data/config/gameplay.json';
-import objectTypes from '../data/config/objectTypes.json';
-import sandboxMap from '../data/maps/sandbox.json';
-import { GameSimulation, type GameplayConfig } from '../gameplay/GameSimulation';
-import type { MapData, ObjectTypeTable } from '../gameplay/world/types';
+import { CONTENT } from '../data/content';
+import { Autosave, createSession, type GameSession } from '../core/session';
+import { SystemClock } from '../core/Clock';
+import type { GameSimulation } from '../gameplay/GameSimulation';
 import { PlaceholderRenderer } from '../components/render/PlaceholderRenderer';
 import type { ActorView } from '../components/render/WorldRenderer';
+import { PlotPresenter } from '../components/presenters/PlotPresenter';
 import { FeedbackPresenter } from '../ui/FeedbackPresenter';
 import { installTestBridge } from '../core/testBridge';
 import { screenToWorld } from '../utils/iso';
 import { worldToTile, type TilePos } from '../utils/tile';
 
-export const SANDBOX_SCENE = 'SandboxScene';
+export const WORLD_SCENE = 'WorldScene';
+
+export interface WorldSceneData {
+  mapId: string;
+  persistent: boolean;
+  /** Dev/test only: start from a fresh game, discarding the stored save. */
+  fresh?: boolean;
+}
 
 /**
- * M1 world scene: thin adapter between Phaser (input, frame loop, drawing)
- * and the headless GameSimulation. Contains no gameplay rules.
+ * World scene: thin adapter between Phaser (input, frame loop, drawing) and
+ * the headless GameSimulation. Contains no gameplay rules.
  */
-export class SandboxScene extends Phaser.Scene {
-  sim!: GameSimulation;
+export class WorldScene extends Phaser.Scene {
+  session!: GameSession;
+  autosave!: Autosave;
   private worldRenderer!: PlaceholderRenderer;
   private playerView!: ActorView;
   private feedback!: FeedbackPresenter;
+  private plots!: PlotPresenter;
   private hoveredObject: string | null = null;
+  private launchData!: WorldSceneData;
 
   constructor() {
-    super(SANDBOX_SCENE);
+    super(WORLD_SCENE);
+  }
+
+  get sim(): GameSimulation {
+    return this.session.sim;
+  }
+
+  init(data: WorldSceneData): void {
+    this.launchData = data;
   }
 
   create(): void {
-    this.sim = new GameSimulation(structuredClone(sandboxMap) as MapData, objectTypes as ObjectTypeTable, gameplayConfig as GameplayConfig);
+    const clock = new SystemClock(import.meta.env.PROD ? 0 : readDebugClockOffset());
+    if (this.launchData.fresh && !import.meta.env.PROD) window.localStorage.removeItem('tcss.save.slot1');
+    this.session = createSession({ mapId: this.launchData.mapId, content: CONTENT, persistent: this.launchData.persistent, clock });
+    this.autosave = new Autosave(this.session);
     const world = this.sim.world;
 
     this.worldRenderer = new PlaceholderRenderer(this);
@@ -44,11 +65,13 @@ export class SandboxScene extends Phaser.Scene {
       floor,
       world.allObjects().map((o) => ({ id: o.id, type: o.type, label: o.def.label, footprint: o.footprint, rotation: o.rotation, interactive: !!o.def.interaction })),
     );
-    this.worldRenderer.frame(world.width, world.height);
+    // Layout policy: the farm HUD panel occupies the right edge (FarmHud PANEL_W + margin).
+    this.worldRenderer.frame(world.width, world.height, this.sim.farm.allPlotViews().length > 0 ? 346 : 0);
     this.scale.on(Phaser.Scale.Events.RESIZE, () => this.worldRenderer.reframe());
 
     this.playerView = this.worldRenderer.createActor('player', 'player');
     this.feedback = new FeedbackPresenter(this.sim.bus, world, this.worldRenderer, () => this.sim.player.pos);
+    this.plots = new PlotPresenter(this.worldRenderer, CONTENT.seeds);
 
     this.input.mouse?.disableContextMenu();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -60,17 +83,27 @@ export class SandboxScene extends Phaser.Scene {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.updateHover(this.pointerTarget(p)));
     this.input.keyboard?.on('keydown-ESC', () => this.sim.cancel());
 
-    this.scene.launch('DebugOverlayScene', { sim: this.sim });
+    // Persist when the tab is hidden or closed (best effort; autosave covers the rest).
+    const flush = () => this.autosave.saveNow();
+    const onVisibility = () => document.visibilityState === 'hidden' && flush();
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flush);
+
+    this.scene.launch('HudScene', { session: this.session });
     installTestBridge(this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      flush();
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flush);
+      this.autosave.destroy();
       this.feedback.destroy();
       this.playerView.destroy();
       this.sim.bus.clear();
     });
   }
 
-  override update(_time: number, delta: number): void {
+  override update(time: number, delta: number): void {
     this.sim.tick(delta);
     const s = this.sim.snapshot();
     const cur = s.interaction.current;
@@ -82,6 +115,8 @@ export class SandboxScene extends Phaser.Scene {
       progress: cur?.phase === 'work' ? cur.progress : null,
     });
     this.worldRenderer.setPathPreview(s.player.waypoints.length ? [s.player.pos, ...s.player.waypoints] : null);
+    this.plots.sync(s.farm.plots);
+    this.autosave.update(time);
   }
 
   /** Pointer → tile, using the camera's own inverse transform. */
@@ -117,5 +152,14 @@ export class SandboxScene extends Phaser.Scene {
       this.hoveredObject = id;
     }
     this.worldRenderer.setHoverTile(!obj && this.sim.world.grid.inBounds(target.tile) ? target.tile : null);
+  }
+}
+
+function readDebugClockOffset(): number {
+  try {
+    const v = Number(window.localStorage.getItem('tcss.debug.clockOffset') ?? 0);
+    return Number.isFinite(v) ? v : 0;
+  } catch {
+    return 0;
   }
 }

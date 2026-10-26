@@ -79,7 +79,7 @@ export class WorldModel {
         if (!map.legend[ch]!.walkable) this.grid.setTerrainBlocked({ x, y }, true);
       });
     });
-    for (const o of map.objects) this.addObject(o.id, o.type, { x: o.x, y: o.y }, o.rotation ?? 0);
+    for (const o of map.objects) this.addObject(o.id, o.type, { x: o.x, y: o.y }, o.rotation ?? 0, o.props ?? {});
     if (!this.grid.isWalkable(map.playerStart)) throw new MapValidationError(['playerStart is not walkable']);
   }
 
@@ -88,7 +88,7 @@ export class WorldModel {
     return ch === undefined ? undefined : this.map.legend[ch]?.kind;
   }
 
-  addObject(id: string, type: string, at: TilePos, rotation = 0): WorldObject {
+  addObject(id: string, type: string, at: TilePos, rotation = 0, props: Record<string, unknown> = {}): WorldObject {
     if (this.objects.has(id)) throw new Error(`object id "${id}" already exists`);
     const def = this.types[type];
     if (!def) throw new Error(`unknown object type "${type}"`);
@@ -102,6 +102,7 @@ export class WorldModel {
       rotation,
       sides: def.interaction?.sides?.map((s) => rotateSide(s, rotation)),
       counters: {},
+      props: { ...props },
     };
     this.objects.set(id, obj);
     if (def.blocking) this.grid.addBlocker(footprint);

@@ -1,5 +1,6 @@
 import type { TilePos } from '../utils/tile';
 import type { ActorState } from '../entities/Actor';
+import type { PlotPhase, TxRecord } from '../gameplay/state/GameState';
 
 export type InteractionFailReason =
   | 'unreachable'
@@ -30,4 +31,13 @@ export interface GameEvents {
   'interaction:completed': IntentInfo & { actionId: string };
   'interaction:failed': IntentInfo & { reason: InteractionFailReason; detail?: string };
   'interaction:cancelled': IntentInfo & { reason: CancelReason; progress: number };
+  'world:objectSelected': { objectId: string };
+  'economy:transaction': TxRecord;
+  'farm:plotChanged': { plotId: string; phase: PlotPhase; locked: boolean; needsWater: boolean; stage: number; soilLevel: number };
+  'farm:canChanged': { water: number; capacity: number };
+  'farm:seedSelected': { seedId: string | null };
+  'shop:opened': { shopId: string; objectId: string };
+  'shop:closed': { shopId: string };
+  'save:written': { at: number };
+  'save:loadProblem': { status: 'corrupt' | 'invalid' | 'unsupported'; detail: string };
 }

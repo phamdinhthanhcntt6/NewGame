@@ -30,7 +30,22 @@
 ### E2E — 8 tests (`tests/e2e/m1-movement.spec.ts`)
 Boot without console errors + exact client↔tile mapping; click-to-move; object approach + work + carry + queued delivery; **clicking a tall object by its visible top/label targets that object, not the tile behind it**; enclosed object unreachable; Esc cancel; right-click cancel; touch tap-to-move.
 
-E2E object clicks use `__TCSS__.objectClickClient(id)`, the place a player would actually click, not the footprint's floor centre.
+E2E object clicks use `__TCSS__.objectClickClient(id)`, the place a player would actually click, not the footprint's floor centre. The M1 suite runs on `/?map=sandbox`.
+
+## 3b. M2 coverage (all passing 2026-10-26) — totals now 78 unit + 13 E2E
+
+### Unit — 37 new tests
+| Area | File | Checks |
+|---|---|---|
+| Plot model | `plotModel.test.ts` | Unwatered seed doesn't grow + dry time; one watering = one segment then thirsty; READY with exact `readyAt`; clock going backwards ignored; **50 random step-wise advances equal one big advance**; non-growing phases are time-invariant; soil speed/yield/quality; thirst penalty + cap |
+| Transactions | `transactions.test.ts` | No negative balance; no removing more than owned; all-or-nothing; netting of repeated lines; unknown item / fractional / zero qty / negative EXP rejected; capacity on net additions only; idempotency key survives rebuilding from saved state; quality averaging; bounded history + events; empty stacks removed |
+| Farm | `farm.test.ts` | New farm layout (6 owned, 18 locked, 200 coins, 2 seeds); **full loop by player clicks** prepare → plant → water → not-ready feedback → thirsty → water → READY → harvest (10 cherries Q55, +8 EXP) → replant; player stands adjacent while working; no harvest before READY; empty can → well refill; no seeds; shop proximity, exact charge, insufficient coins, invalid qty, closes when walking away; selected Arabica planted; locked land (no walking, buy once, insufficient coins); soil upgrade rules + charges; harvest pays once under repeated clicks and a 60 s frame; full bag blocks harvest cleanly |
+| Save | `save.test.ts` | Round-trip equality (economy, plots, player tile); **growth while closed** from timestamps; reload can't duplicate a harvest (even if the plot is forced back to READY); saving mid-action keeps nothing half-done; corrupt JSON backed up; invalid structure rejected; newer version refused and untouched; migrations run in order |
+
+### E2E — 5 new tests (`tests/e2e/m2-farm.spec.ts`)
+Full farming loop with real mouse clicks and clock fast-forward; seed shop via HUD buttons (disabled away from the stall, active at it, Arabica selected and planted, shop closes when walking far); locked land (no walking, HUD purchase, buy button disappears); **reload persistence without an explicit save** + growth while "closed"; the sandbox never writes the farm save.
+
+E2E HUD clicks use `__TCSS__.buttonClient(name)` and wait for the button to be enabled, because the HUD refreshes one frame after the simulation.
 
 ## 4. Mutation checks performed for M1
 | Deliberate break | Tests failing |
@@ -41,7 +56,19 @@ E2E object clicks use `__TCSS__.objectClickClient(id)`, the place a player would
 | Remove once-only completion guard | 1 (after adding the re-entrancy test; initially 0) |
 | Disable object hit-testing (tile-only picking) | 2 E2E |
 
-## 5. Known issues / gaps after M1
+### M2 mutation checks
+| Deliberate break | Unit tests failing |
+|---|---|
+| No idempotency check (duplicate rewards) | 2 |
+| Allow negative balance | 3 |
+| Allow removing more items than owned | 3 |
+| Ignore inventory capacity | 2 |
+| Crops grow without water | 5 |
+| Buy seeds away from the stall | 1 |
+| Rules read stale (un-advanced) plot state | 1 |
+| Harvest allowed while GROWING | 3 |
+
+## 5. Known issues / gaps (after M2)
 1. **No customer or employee actors yet**, so actor–actor overlap and avoidance are untested (M4/M8).
 2. **Depth sorting** uses a footprint heuristic tested at fixed probe points. Long multi-tile objects with actors on diagonal corners may still mis-sort; this needs a visual test map when real sprites arrive.
 3. **The E2E suite runs Chromium only.** No WebKit/Firefox and no real mobile device yet.
@@ -50,11 +77,16 @@ E2E object clicks use `__TCSS__.objectClickClient(id)`, the place a player would
 6. **Performance** has only been checked on desktop Chromium (59–60 fps in the sandbox); there's no mobile profiling.
 7. **Feedback text for `unknownAction` failures** builds an i18n key from free-text detail, so it shows a raw key. Only reachable with broken data; fix when the production HUD lands.
 8. **Hit-testing is per-object polygon checks** (linear scan). Fine for a room of tens of objects; it will need a spatial index if a scene has hundreds.
+9. **Farm scene ran at ~43 fps in headless Chromium** (software rendering, 29 objects + labels), versus 59–60 in the M1 sandbox. Each frame also builds the snapshot twice (world + HUD). Profile on real hardware before M4 adds customers.
+10. **Plot labels are small at the fitted zoom.** Placeholder only; the HUD's selected-plot panel carries the detail.
+11. **Seed `unlockLevel` is data only.** Culi can be bought at level 1 until levels exist (M6).
+12. **Single save slot in localStorage.** Quota errors on `setItem` are not caught yet (M11). Playwright gets a fresh browser context per test, so E2E runs never share saves.
+13. **The dev clock offset** (`tcss.debug.clockOffset`) persists in localStorage in dev builds. It is ignored in production builds.
 
 ## 6. Planned coverage per milestone
 | Milestone | Key automated checks |
 |---|---|
-| M2 | Plot FSM legality; cannot harvest before READY; growth from saved timestamps after reload (fake clock); harvest → inventory exactly once |
+| M2 | ✅ done (§3b) |
 | M3 | Processing consumes inputs before producing outputs; capacity limits; no selling more than owned; transaction history totals |
 | M4 | Customers never teleport (max displacement per tick); queue order; patience → FAILED; blocked path → customer leaves, no stuck NPCs (fuzz) |
 | M5 | Each mini-game input changes quality; ingredients consumed once; a drink can be served only once |

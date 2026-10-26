@@ -34,7 +34,7 @@ export class DebugPanel {
     const cur = s.interaction.current;
     this.text.setText(
       [
-        `TheCoffeeSixSense · M1 sandbox · ${fps.toFixed(0)} fps`,
+        `TheCoffeeSixSense · map: ${s.map} · ${fps.toFixed(0)} fps`,
         t('debug.help'),
         `player  ${p.state}  tile ${p.tile.x},${p.tile.y}  pos ${p.pos.x.toFixed(2)},${p.pos.y.toFixed(2)}  facing ${p.facing}`,
         `held    ${p.heldItem ?? '-'}`,

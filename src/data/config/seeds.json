@@ -1,0 +1,41 @@
+{
+  "robusta": {
+    "label": "Robusta",
+    "seedItem": "seed_robusta",
+    "productItem": "cherry_robusta",
+    "purchaseCost": 30,
+    "growthMs": 120000,
+    "waterings": 2,
+    "yield": 10,
+    "baseQuality": 55,
+    "sellPrice": 5,
+    "expReward": 8,
+    "unlockLevel": 1
+  },
+  "arabica": {
+    "label": "Arabica",
+    "seedItem": "seed_arabica",
+    "productItem": "cherry_arabica",
+    "purchaseCost": 50,
+    "growthMs": 180000,
+    "waterings": 3,
+    "yield": 8,
+    "baseQuality": 70,
+    "sellPrice": 8,
+    "expReward": 12,
+    "unlockLevel": 1
+  },
+  "culi": {
+    "label": "Culi",
+    "seedItem": "seed_culi",
+    "productItem": "cherry_culi",
+    "purchaseCost": 80,
+    "growthMs": 300000,
+    "waterings": 4,
+    "yield": 8,
+    "baseQuality": 82,
+    "sellPrice": 12,
+    "expReward": 20,
+    "unlockLevel": 3
+  }
+}

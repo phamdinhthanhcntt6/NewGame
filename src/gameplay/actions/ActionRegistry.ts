@@ -7,7 +7,13 @@ export interface ActionContext {
   action: ActionDef;
 }
 
-export type CanStartResult = { ok: true } | { ok: false; reason: string };
+/**
+ * `applicable: false` means "this action does not apply to the object's
+ * current state" (e.g. harvest on an empty plot). When every candidate fails,
+ * the reported reason is the first *applicable* failure, so the player sees
+ * "watering can is empty" instead of "not ready".
+ */
+export type CanStartResult = { ok: true } | { ok: false; reason: string; applicable?: boolean };
 
 /**
  * A gameplay rule bound to an action id from data. Handlers are the only

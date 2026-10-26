@@ -1,0 +1,17 @@
+{
+  "startingCoins": 200,
+  "startingItems": { "seed_robusta": 2 },
+  "inventoryCapacity": 300,
+  "historyLimit": 100,
+  "processedKeyLimit": 1000,
+  "farm": {
+    "wateringCan": { "capacity": 4 },
+    "soilLevels": [
+      { "level": 1, "cost": 0, "yieldBonus": 0, "qualityBonus": 0, "growthSpeedBonus": 0 },
+      { "level": 2, "cost": 250, "yieldBonus": 0.25, "qualityBonus": 5, "growthSpeedBonus": 0.1 },
+      { "level": 3, "cost": 600, "yieldBonus": 0.5, "qualityBonus": 10, "growthSpeedBonus": 0.2 }
+    ],
+    "dryPenalty": { "perMinute": 2, "max": 15 },
+    "shopLeaveDistance": 2
+  }
+}

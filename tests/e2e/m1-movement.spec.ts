@@ -9,7 +9,7 @@ async function boot(page: Page): Promise<string[]> {
   const errors: string[] = [];
   page.on('pageerror', (e) => errors.push(e.message));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
-  await page.goto('/');
+  await page.goto('/?map=sandbox');
   await page.waitForFunction(() => window.__TCSS__?.ready === true);
   // Let the camera settle one frame so worldView is current.
   await page.waitForTimeout(200);

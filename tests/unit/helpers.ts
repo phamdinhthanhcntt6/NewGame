@@ -1,13 +1,14 @@
-import gameplay from '../../src/data/config/gameplay.json';
-import objectTypes from '../../src/data/config/objectTypes.json';
-import sandbox from '../../src/data/maps/sandbox.json';
-import { GameSimulation, type GameplayConfig } from '../../src/gameplay/GameSimulation';
-import type { MapData, MapObjectData, ObjectTypeTable } from '../../src/gameplay/world/types';
+import { FakeClock } from '../../src/core/Clock';
+import { CONTENT } from '../../src/data/content';
+import { GameSimulation } from '../../src/gameplay/GameSimulation';
+import type { GameState } from '../../src/gameplay/state/GameState';
+import type { MapData, MapObjectData } from '../../src/gameplay/world/types';
 import { NavGrid } from '../../src/systems/navigation/NavGrid';
 
-export const TYPES = objectTypes as ObjectTypeTable;
-export const CONFIG = gameplay as GameplayConfig;
-export const SANDBOX = sandbox as MapData;
+export const TYPES = CONTENT.objectTypes;
+export const CONFIG = CONTENT.gameplay;
+export const SANDBOX = CONTENT.maps.sandbox!;
+export const FARM = CONTENT.maps.farm!;
 
 /** Grid from ASCII rows: '#' blocked, anything else walkable. */
 export function gridFrom(rows: string[]): NavGrid {
@@ -28,7 +29,13 @@ export function makeMap(rows: string[], objects: MapObjectData[], start = { x: 1
 }
 
 export function sandboxSim(): GameSimulation {
-  return new GameSimulation(structuredClone(SANDBOX), TYPES, CONFIG);
+  return new GameSimulation(structuredClone(SANDBOX), CONTENT, { clock: new FakeClock() });
+}
+
+export function farmSim(opts: { state?: GameState; clock?: FakeClock } = {}): { sim: GameSimulation; clock: FakeClock } {
+  const clock = opts.clock ?? new FakeClock();
+  const sim = new GameSimulation(structuredClone(FARM), CONTENT, { clock, ...(opts.state ? { state: opts.state } : {}) });
+  return { sim, clock };
 }
 
 /** Tick in 16 ms frames until predicate holds or the budget runs out. */

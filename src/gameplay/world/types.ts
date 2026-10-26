@@ -34,6 +34,8 @@ export interface MapObjectData {
   y: number;
   /** Quarter turns clockwise (0–3). Odd values swap footprint w/h. */
   rotation?: number;
+  /** Per-instance gameplay data (e.g. a plot's purchase price). */
+  props?: Record<string, unknown>;
 }
 
 export interface MapData {
@@ -55,4 +57,5 @@ export interface WorldObject {
   readonly sides: Side[] | undefined;
   /** Generic per-object counters mutated only by action handlers. */
   readonly counters: Record<string, number>;
+  readonly props: Readonly<Record<string, unknown>>;
 }
