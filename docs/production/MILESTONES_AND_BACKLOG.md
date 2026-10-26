@@ -1,5 +1,7 @@
 # Milestones & Prioritized Backlog
 
+> ⚠ **Superseded 2026-10-26** by [GAMEPLAY_ROADMAP.md](../GAMEPLAY_ROADMAP.md) (gameplay-first, 12 milestones). Rule changes are listed in [GAMEPLAY_SYSTEMS.md §1](../GAMEPLAY_SYSTEMS.md). The art track and asset backlog below still apply, but they are scheduled after gameplay.
+
 > **Project:** TheCoffeeSixSense · **Status:** Draft v0.1 (2026-10-26) · **Branch:** `dev`
 > **Related:** [ACCEPTANCE_TESTS](../design/ACCEPTANCE_TESTS.md) · [ASSET_MANIFEST](../design/ASSET_MANIFEST.md) · [TECHNICAL_ARCHITECTURE](../architecture/TECHNICAL_ARCHITECTURE.md)
 

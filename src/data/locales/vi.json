@@ -1,0 +1,19 @@
+{
+  "feedback.done": "Xong: {action}",
+  "feedback.queued": "Đã xếp hàng (#{n})",
+  "feedback.fail.unreachable": "Không thể đi tới",
+  "feedback.fail.objectMissing": "Vật thể không còn",
+  "feedback.fail.notInteractable": "Không thể tương tác",
+  "feedback.fail.unknownAction": "Hành động không hợp lệ",
+  "feedback.fail.requirementsNotMet": "Chưa đủ điều kiện",
+  "feedback.fail.queueFull": "Hàng chờ đã đầy",
+  "feedback.fail.handsFull": "Tay đang cầm đồ",
+  "feedback.fail.needsItem": "Cần cầm đúng vật phẩm",
+  "action.brew_test": "Pha cốc thử",
+  "action.place_cup": "Đặt cốc",
+  "action.pick_box": "Nhặt hộp",
+  "action.store_box": "Cất hộp",
+  "action.inspect": "Quan sát",
+  "action.read": "Đọc biển",
+  "debug.help": "Nhấp/chạm: đi hoặc tương tác · Nhấp nhiều vật: xếp hàng · Esc/chuột phải: huỷ"
+}

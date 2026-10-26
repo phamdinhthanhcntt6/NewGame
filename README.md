@@ -1,13 +1,19 @@
 # TheCoffeeSixSense
 
-Baseline reference commit (2026-10-26).
+2.5D isometric coffee farming + café management game (Phaser 4, TypeScript, Vite).
+Current phase: **gameplay first, placeholder art**. See [docs/GAMEPLAY_ROADMAP.md](docs/GAMEPLAY_ROADMAP.md).
 
-No prior TheCoffeeSixSense source code was found on this machine when this repository
-was created (D:\NewGame was empty; no matching project on local drives or in VS Code's
-recent workspaces). This `main` branch therefore holds only:
+## Run
+```
+npm install
+npx playwright install chromium   # once, for e2e
+npm run dev        # http://localhost:5180
+npm run typecheck
+npm test           # unit (Vitest)
+npm run e2e        # end-to-end (Playwright)
+npm run build
+```
 
-- this README
-- `docs/design/reference/concept-sheet-29-screens.jpg` — the approved 29-screen concept sheet
-  (single 1536×1024 composite; the only visual reference available)
-
-All production work happens on the `dev` branch. `main` stays untouched as the reference.
+## Branches
+- `main`: untouched reference (baseline README + concept sheet).
+- `dev`: all work.

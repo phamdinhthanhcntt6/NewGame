@@ -1,0 +1,50 @@
+{
+  "id": "sandbox",
+  "name": "M1 movement & interaction sandbox",
+  "legend": {
+    "#": { "kind": "wall", "walkable": false },
+    ".": { "kind": "floor", "walkable": true }
+  },
+  "terrain": [
+    "################",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "#..............#",
+    "################"
+  ],
+  "playerStart": { "x": 2, "y": 9 },
+  "objects": [
+    { "id": "counter_1", "type": "counter", "x": 4, "y": 3 },
+    { "id": "counter_2", "type": "counter", "x": 5, "y": 3 },
+    { "id": "counter_3", "type": "counter", "x": 6, "y": 3 },
+    { "id": "counter_4", "type": "counter", "x": 7, "y": 3 },
+    { "id": "machine", "type": "espresso_machine", "x": 8, "y": 3 },
+    { "id": "counter_5", "type": "counter", "x": 9, "y": 3 },
+    { "id": "counter_6", "type": "counter", "x": 10, "y": 3 },
+    { "id": "plant_1", "type": "plant", "x": 7, "y": 5 },
+    { "id": "plant_2", "type": "plant", "x": 7, "y": 6 },
+    { "id": "plant_3", "type": "plant", "x": 7, "y": 7 },
+    { "id": "plant_4", "type": "plant", "x": 7, "y": 8 },
+    { "id": "table_a", "type": "table_2", "x": 3, "y": 7 },
+    { "id": "table_b", "type": "table_2", "x": 10, "y": 7 },
+    { "id": "crate", "type": "crate", "x": 13, "y": 2 },
+    { "id": "shelf", "type": "shelf", "x": 1, "y": 5 },
+    { "id": "sign", "type": "sign", "x": 14, "y": 5 },
+    { "id": "statue", "type": "statue", "x": 13, "y": 9 },
+    { "id": "post_1", "type": "wall_post", "x": 12, "y": 8 },
+    { "id": "post_2", "type": "wall_post", "x": 13, "y": 8 },
+    { "id": "post_3", "type": "wall_post", "x": 14, "y": 8 },
+    { "id": "post_4", "type": "wall_post", "x": 12, "y": 9 },
+    { "id": "post_5", "type": "wall_post", "x": 14, "y": 9 },
+    { "id": "post_6", "type": "wall_post", "x": 12, "y": 10 },
+    { "id": "post_7", "type": "wall_post", "x": 13, "y": 10 },
+    { "id": "post_8", "type": "wall_post", "x": 14, "y": 10 }
+  ]
+}

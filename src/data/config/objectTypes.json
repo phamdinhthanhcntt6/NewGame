@@ -1,0 +1,85 @@
+{
+  "wall_post": {
+    "label": "Post",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true
+  },
+  "plant": {
+    "label": "Plant",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true
+  },
+  "counter": {
+    "label": "Counter",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true
+  },
+  "espresso_machine": {
+    "label": "Coffee machine",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": ["S"],
+      "actions": [
+        { "id": "brew_test", "label": "Brew test cup", "durationMs": 1500, "handler": "held.take", "params": { "item": "test_cup" } }
+      ]
+    }
+  },
+  "table_2": {
+    "label": "Table",
+    "footprint": { "w": 2, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "place_cup", "label": "Place cup", "durationMs": 400, "handler": "held.deliver", "params": { "item": "test_cup", "counter": "cupsPlaced" } }
+      ]
+    }
+  },
+  "crate": {
+    "label": "Crate",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "pick_box", "label": "Pick up box", "durationMs": 800, "handler": "held.take", "params": { "item": "box" } }
+      ]
+    }
+  },
+  "shelf": {
+    "label": "Shelf",
+    "footprint": { "w": 1, "h": 2 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": ["E"],
+      "actions": [
+        { "id": "store_box", "label": "Store box", "durationMs": 600, "handler": "held.deliver", "params": { "item": "box", "counter": "boxesStored" } }
+      ]
+    }
+  },
+  "statue": {
+    "label": "Fenced statue",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "inspect", "label": "Inspect", "durationMs": 0, "handler": "inspect", "params": {} }
+      ]
+    }
+  },
+  "sign": {
+    "label": "Sign",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "read", "label": "Read sign", "durationMs": 0, "handler": "inspect", "params": {} }
+      ]
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "player": {
+    "speedTilesPerSec": 3.5,
+    "bodyRadius": 0.25,
+    "engageMs": 150,
+    "maxQueuedInteractions": 4,
+    "blockedClickSearchRadius": 4
+  },
+  "simulation": {
+    "maxStepMs": 100
+  }
+}
