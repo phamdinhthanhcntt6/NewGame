@@ -9,6 +9,7 @@ import recipes from './config/recipes.json';
 import customers from './config/customers.json';
 import cafeMap from './maps/cafe.json';
 import brewing from './config/brewing.json';
+import progression from './config/progression.json';
 import farmMap from './maps/farm.json';
 import sandboxMap from './maps/sandbox.json';
 import type { GameplayConfig } from '../gameplay/GameSimulation';
@@ -21,6 +22,8 @@ import type { MarketConfig } from '../gameplay/market/MarketService';
 import type { RecipeTable } from '../gameplay/cafe/OrderService';
 import type { CustomerConfig } from '../gameplay/cafe/CafeService';
 import type { BrewingConfig, BrewStep } from '../gameplay/cafe/BrewingService';
+import type { RatingConfig } from '../gameplay/cafe/RatingService';
+import type { ProgressionConfig } from '../gameplay/progression/ProgressionService';
 
 export interface EconomyConfig {
   startingCoins: number;
@@ -43,6 +46,7 @@ export interface GameContent {
   recipes: RecipeTable;
   customers: CustomerConfig;
   brewing: BrewingConfig;
+  progression: RatingConfig & ProgressionConfig;
   maps: Record<string, MapData>;
 }
 
@@ -89,6 +93,15 @@ export function validateContent(c: GameContent): string[] {
     for (const rid of Object.keys(a.preferences)) if (!c.recipes[rid]) p.push(`customer ${k}: unknown recipe ${rid}`);
     if (!(a.orderPatienceMs > 0 && a.drinkPatienceMs > 0 && a.speedTilesPerSec > 0)) p.push(`customer ${k}: patience/speed must be > 0`);
   }
+  const pr = c.progression;
+  const wsum = Object.values(pr.rating.weights).reduce((a, b) => a + b, 0);
+  if (Math.abs(wsum - 1) > 1e-9) p.push(`rating weights must sum to 1 (got ${wsum})`);
+  for (const key of ['starThresholds', 'priceMultiplier', 'tipShare', 'expMultiplier'] as const) {
+    if (pr.rating[key].length !== 5) p.push(`rating.${key} needs 5 entries (1–5 stars)`);
+  }
+  if (pr.rating.starThresholds.some((v, i, a) => i > 0 && v <= a[i - 1]!)) p.push('rating.starThresholds must increase');
+  for (const rid of Object.keys(c.recipes)) if (!(rid in pr.recipeUnlockLevel)) p.push(`recipe ${rid}: no unlock level`);
+  if (!Object.values(pr.recipeUnlockLevel).some((l) => l <= 1)) p.push('at least one recipe must be available at level 1');
   const levels = c.economy.farm.soilLevels.map((l) => l.level);
   if (levels[0] !== 1 || levels.some((l, i) => l !== i + 1)) p.push('soilLevels must be 1..n in order');
   return p;
@@ -105,6 +118,7 @@ export const CONTENT: GameContent = {
   recipes: recipes as RecipeTable,
   customers: customers as CustomerConfig,
   brewing: brewing as BrewingConfig,
+  progression: progression as RatingConfig & ProgressionConfig,
   maps: { farm: farmMap as MapData, cafe: cafeMap as MapData, sandbox: sandboxMap as MapData },
 };
 

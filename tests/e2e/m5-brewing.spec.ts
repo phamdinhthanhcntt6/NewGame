@@ -96,7 +96,10 @@ test('full latte with real input: take order by clicking the customer, brew at t
   await clickCustomer(page, id);
   await page.waitForFunction(() => window.__TCSS__!.events().some((e) => e.type === 'cafe:paid'), undefined, { timeout: 20_000 });
   const s = await snap(page);
-  expect(s.economy.coins).toBe(coins + 60);
+  // Since M6 the customer pays according to their rating (price × star multiplier + tip).
+  const rated = (await page.evaluate(() => window.__TCSS__!.events())).find((e) => e.type === 'cafe:rated')!.payload as { stars: number; coins: number; tip: number };
+  expect(rated.stars).toBeGreaterThanOrEqual(4); // every needle stopped in the zone, preferred bean
+  expect(s.economy.coins).toBe(coins + rated.coins + rated.tip);
   expect(s.player.heldItem).toBeNull();
   expect(s.cafe!.recentOrders.find((o) => o.customerId === id)?.status).toBe('COMPLETED');
   expect(errors).toEqual([]);

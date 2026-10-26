@@ -21,6 +21,9 @@ import { OrderService, type Order } from './cafe/OrderService';
 import { registerCafeHandlers } from './cafe/cafeHandlers';
 import { BrewingService, type BrewView } from './cafe/BrewingService';
 import { SupplyService } from './cafe/SupplyService';
+import { RatingService } from './cafe/RatingService';
+import { ProgressionService } from './progression/ProgressionService';
+import type { FeedbackEntry } from './state/GameState';
 import { createNewGameState, type GameState, type ItemStack, type TxRecord } from './state/GameState';
 import { WorldModel } from './world/WorldModel';
 import type { MapData } from './world/types';
@@ -59,6 +62,8 @@ export interface SimulationSnapshot {
   shop: string | null;
   processing: { equipment: EquipmentView[]; selectedRecipe: Record<string, string | null> };
   market: { recentSales: TxRecord[] };
+  progression: { level: number; exp: number; levelStartExp: number; nextLevelExp: number };
+  reputation: { value: number; traffic: number; recent: FeedbackEntry[]; served: number; failed: number };
   /** null on maps without a café floor. */
   cafe: { customers: CustomerView[]; orders: Order[]; recentOrders: Order[]; queue: string[]; freeSpots: number; brew: BrewView | null; nextToBrew: number | null; heldDrink: { id: string; recipeId: string; orderId: number; quality: number } | null } | null;
 }
@@ -93,6 +98,8 @@ export class GameSimulation {
   readonly cafe: CafeService | null;
   readonly brewing: BrewingService;
   readonly supplies: SupplyService;
+  readonly progression: ProgressionService;
+  readonly rating: RatingService;
   readonly player: Actor;
   readonly playerInteraction: InteractionService;
   readonly config: GameplayConfig;
@@ -120,7 +127,9 @@ export class GameSimulation {
     this.nav = new NavigationService(this.world.grid, this.config.player.bodyRadius);
     this.tx = new TransactionService(this.state, content.items, eco, this.bus, this.clock);
     this.shops = new ShopSessionService(this.world, this.bus, eco.farm.shopLeaveDistance);
-    this.farm = new FarmService(this.state, this.world, content.seeds, eco.farm, this.tx, this.bus, this.clock, this.shops);
+    this.progression = new ProgressionService(this.state, content.progression, content.seeds, this.bus);
+    this.rating = new RatingService(this.state, content.progression, content.recipes, this.bus);
+    this.farm = new FarmService(this.state, this.world, content.seeds, eco.farm, this.tx, this.bus, this.clock, this.shops, (id) => this.progression.isSeedUnlocked(id));
     this.processing = new ProcessingService(this.state, this.world, content.processing, this.tx, this.bus, this.clock);
     this.market = new MarketService(this.state, content.market, content.seeds, this.tx, this.shops, this.bus, this.clock);
     registerBasicHandlers(this.actions, this.bus);
@@ -132,7 +141,11 @@ export class GameSimulation {
     this.playerInteraction = new InteractionService(this.player, this.world, this.nav, this.actions, this.bus, this.config.player);
     this.orders = new OrderService(content.recipes, this.bus, () => this.timeMs);
     this.cafe = this.world.markers('orderPoint').length
-      ? new CafeService(this.world, this.nav, this.orders, content.customers, this.bus, new Rng(opts.rngSeed ?? Date.now()), () => this.timeMs, this.config.player.bodyRadius, this.tx)
+      ? new CafeService(this.world, this.nav, this.orders, content.customers, this.bus, new Rng(opts.rngSeed ?? Date.now()), () => this.timeMs, this.config.player.bodyRadius, this.tx, this.rating.policy, {
+          trafficFactor: () => this.rating.trafficFactor,
+          isRecipeUnlocked: (id) => this.progression.isRecipeUnlocked(id),
+          onCustomerFailed: (reason) => this.rating.recordFailure(reason),
+        })
       : null;
     this.brewing = new BrewingService(this.world, this.nav, this.player, this.orders, content.recipes, content.brewing, content.items, this.tx, this.bus, () => this.timeMs);
     this.supplies = new SupplyService(content.brewing.supplies, this.tx, this.shops);
@@ -252,6 +265,19 @@ export class GameSimulation {
         seedToPlant: this.farm.seedToPlant(),
       },
       shop: this.shops.current,
+      progression: {
+        level: this.progression.level,
+        exp: this.progression.exp,
+        levelStartExp: this.progression.levelStartExp,
+        nextLevelExp: this.progression.nextLevelExp,
+      },
+      reputation: {
+        value: this.rating.reputation,
+        traffic: this.rating.trafficFactor,
+        recent: this.rating.history().slice(0, 8),
+        served: this.state.cafe.stats.served,
+        failed: this.state.cafe.stats.failed,
+      },
       processing: { equipment: this.processing.allViews(), selectedRecipe: { ...this.state.processing.selectedRecipe } },
       market: { recentSales: this.market.recentSales() },
       cafe: this.cafe

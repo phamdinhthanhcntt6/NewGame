@@ -118,7 +118,7 @@ describe('save / load', () => {
     expect(storage.get('tcss.save.slot1')).toBe(raw);
   });
 
-  it('migrates a real v1 (M2-era) save to v2: farm progress kept, processing/market added', () => {
+  it('migrates a real v1 (M2-era) save to the current version: farm progress kept, later sections added', () => {
     const { sim, clock } = farmSim();
     const storage = new MemoryStorage();
     use(sim, P);
@@ -126,13 +126,15 @@ describe('save / load', () => {
     const v1 = structuredClone(sim.captureState()) as unknown as Record<string, unknown>;
     delete v1.processing;
     delete v1.market;
+    delete v1.cafe;
     v1.schemaVersion = 1;
     storage.set('tcss.save.slot1', JSON.stringify(v1));
     const r = new SaveService(storage).load(clock.now());
     expect(r).toMatchObject({ status: 'ok', migratedFrom: 1 });
     if (r.status !== 'ok') return;
-    expect(r.state.schemaVersion).toBe(2);
+    expect(r.state.schemaVersion).toBe(3);
     expect(r.state.processing).toEqual({ equipment: {}, selectedRecipe: {} });
+    expect(r.state.cafe).toEqual({ ratings: [], feedback: [], stats: { served: 0, failed: 0 } });
     const resumed = farmSim({ state: r.state, clock }).sim;
     expect(resumed.farm.plot(P)!.phase).toBe('PLANTED');
     expect(resumed.processing.allViews().map((e) => e.id).sort()).toEqual(['drying_rack_1', 'drying_rack_2', 'roaster']);
@@ -141,7 +143,9 @@ describe('save / load', () => {
   it('runs a chain of migrations in order up to the current version', () => {
     const { sim, clock } = farmSim();
     const storage = new MemoryStorage();
-    storage.set('tcss.save.slot1', JSON.stringify(sim.captureState())); // v2
+    const v2 = structuredClone(sim.captureState()) as unknown as Record<string, unknown>;
+    v2.schemaVersion = 2; // an older save, migrated through a custom 2 → 3 → 4 chain
+    storage.set('tcss.save.slot1', JSON.stringify(v2));
     const order: number[] = [];
     const saves = new SaveService(storage, 'tcss.save.slot1', { 2: (raw) => (order.push(2), { ...raw, note: 'v3' }), 3: (raw) => (order.push(3), { ...raw, note: `${String(raw.note)}→v4` }) }, 4);
     const r = saves.load(clock.now());

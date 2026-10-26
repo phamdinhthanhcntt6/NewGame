@@ -81,6 +81,16 @@ Needle and accuracy maths; **perfect latte** (exact ingredient use, drink in han
 ### E2E — 3 new tests (`tests/e2e/m5-brewing.spec.ts`)
 Full latte with real input: take the order by clicking the customer, walk to three stations, click bean/addition buttons, **stop each needle with the Space key while it is in the green zone** (sim time slowed so a browser can react; the needle follows sim time), serve by clicking the customer, receive exactly 60 coins; supplies bought through HUD buttons; wrong station refused, cancel keeps the order. The full test passed 3/3 under `--repeat-each=3`.
 
+## 3f. M6 coverage (all passing 2026-10-27) — totals now 153 unit + 25 E2E
+
+### Unit — 22 new tests (`rating.test.ts`)
+Exact 40/25/20/15 combination; serving-time curve; **slow service lowers the score by exactly 15**; preferred-bean bonus and cap; star thresholds; determinism; each feedback rule (wrong order, bitter, sweet both ways, cold, slow, aroma, delicious only without complaints); price/tip/EXP by stars; reputation window, failures as 1★, traffic and tip effects; **same seed, 5★ vs 1★ reputation → more customers**; unhappy departure lowers café reputation; level thresholds; level-up announced once per level; Culi unlocks at 3; customers only order unlocked recipes and the menu grows; reputation/stats/history survive save/load; history capped at 50.
+
+Updated by design: the M5 serve test now expects the rated payment (5★ latte = 78 + 15 tip); the farm shop test now expects `levelTooLow` for Culi at level 1; migration tests target schema v3.
+
+### E2E — 2 new tests (`tests/e2e/m6-rating.spec.ts`, 90 s timeout: two full brews)
+A latte made with water is rated "wrong order" with fewer stars and less money than a correct one (real clicks + Space); reputation and rating history persist across a reload. The M5 full-latte test now asserts ≥ 4★ and payment = rated coins + tip.
+
 ## 4. Mutation checks performed for M1
 | Deliberate break | Tests failing |
 |---|---|
@@ -137,6 +147,20 @@ Full latte with real input: take the order by clicking the customer, walk to thr
 | Customer never pays | 2 |
 | Payment without idempotency key | **0 (equivalent mutant):** settle only runs while the order is SERVED and immediately makes it COMPLETED (terminal, archived), so the order FSM already prevents a second payment. The key is defense in depth. |
 
+### M6 mutation checks
+| Deliberate break | Unit tests failing |
+|---|---|
+| Serving time ignored in the score | 1 (**0 before** the "slow service lowers the score" test was added — a real gap the mutation exposed) |
+| No preferred-bean bonus | 1 |
+| No wrong-order feedback | 1 |
+| No cold feedback | 1 |
+| Tips ignore reputation | 1 |
+| Unhappy customers don't hurt reputation | 3 |
+| Reputation doesn't affect traffic | 1 |
+| Customers order locked recipes | 1 |
+| Seeds ignore level | 2 |
+| Level-up announced repeatedly | 1 |
+
 ## 5. Known issues / gaps (after M2)
 1. **No customer or employee actors yet**, so actor–actor overlap and avoidance are untested (M4/M8).
 2. **Depth sorting** uses a footprint heuristic tested at fixed probe points. Long multi-tile objects with actors on diagonal corners may still mis-sort; this needs a visual test map when real sprites arrive.
@@ -162,6 +186,9 @@ Full latte with real input: take the order by clicking the customer, walk to thr
 22. **One brewing session at a time, FIFO by order.** The player can't choose which accepted order to brew next; cancel and re-brew is the workaround.
 23. **No trash bin:** a drink can only leave the hands by serving it, or automatically when its customer leaves.
 24. **Payment is the base price** until M6 ratings.
+25. **Feedback words are fixed rules** (no variety or personality per archetype yet); customer `sensitivity` from the design doc is not modelled.
+26. **Tips use the reputation before the current rating is recorded** (by design: the customer doesn't know their own rating's effect).
+27. **Level gates only recipes and seeds** so far; furniture/equipment/region gates arrive with those systems (M7, M10).
 
 ## 6. Planned coverage per milestone
 | Milestone | Key automated checks |
@@ -170,7 +197,7 @@ Full latte with real input: take the order by clicking the customer, walk to thr
 | M3 | ✅ done (§3c) |
 | M4 | ✅ done (§3d) |
 | M5 | ✅ done (§3e) |
-| M6 | Rating weights 40/25/20/15 table tests; reputation/traffic/tips; no negative balance; reward idempotency |
+| M6 | ✅ done (§3f) |
 | M7 | Placement validation; nav rebuild; furniture bonus applied; persistence |
 | M8 | Employees use real tasks (inventory changes match work done) |
 | M9 | Each story scene completable only through its objectives |

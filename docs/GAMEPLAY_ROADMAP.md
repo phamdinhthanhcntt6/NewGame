@@ -18,8 +18,8 @@
 | **M3** | Processing, selling, shared inventory | **Done 2026-10-26** | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
 | **M4** | Customer AI & orders | **Done 2026-10-26** | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
 | **M5** | Brewing mini-game & serving | **Done 2026-10-26** | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
-| M6 | Ratings, economy, progression | Next | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
-| M7 | Furniture & decoration | — | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
+| **M6** | Ratings, economy, progression | **Done 2026-10-27** | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
+| M7 | Furniture & decoration | Next | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
 | M8 | Employees | — | Barista/Cashier/Server/Farm worker with task assignment + FSM, using the same interaction system as the player |
 | M9 | Playable rebirth story | — | Scenes 03/04/05 with click-to-move objectives (no joystick), tutorial uses M5 brewing |
 | M10 | World map, quests, expansion | — | Locations, districts, branches, quests, achievements, skills, recipe unlocks (placeholder UI) |
@@ -90,3 +90,10 @@
 - **Payment in M5 is the recipe's base price.** Quality-based ratings, tips and reputation are M6; they plug into the `RatingPolicy` hook.
 - **Totals:** 131 unit + 23 E2E tests; 7 of 8 mutation checks caught (the 8th is an equivalent mutant, see the test plan).
 - **M6 unblocked:** yes. Each drink records bean quality, recipe accuracy, per-step timing accuracy and ready time; each order records accept/serve times. Those are the inputs of the 40/25/20/15 rating.
+
+## M6 report (2026-10-27)
+- **Playable flow:** serve drinks as in M5; each customer now rates the drink. A popup over the customer shows stars, short feedback ("Ngon tuyệt", "Sai món", "Đắng quá"…) and the money paid. The café HUD shows reputation, customer traffic, level/EXP and recent ratings. Level-ups pop up over the player. Better ratings bring more customers and bigger tips; unhappy departures hurt reputation. The menu grows with level (Latte at 2, Cappuccino at 3), and Culi seeds unlock at level 3.
+- **Evidence:** [rating popup and café HUD](screenshots/m6-rating.png)
+- **Delivered:** GAMEPLAY_SYSTEMS §22–§24. Save schema **v3** (reputation + feedback history) with a v2→v3 migration.
+- **Totals:** 153 unit + 25 E2E tests; all 10 mutation checks caught (one only after adding the missing "slow service lowers the score" test).
+- **M7 unblocked:** yes. Coins now flow at quality-dependent rates; furniture can feed "comfort" into ratings and seats into café capacity.

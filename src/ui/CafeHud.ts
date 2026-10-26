@@ -59,9 +59,9 @@ export class CafeHud {
     const head = { ...TEXT, color: '#f2c14e' };
     add(8, t('cafe.title'), { ...head, fontSize: '15px' });
     add(28, t('cafe.help'), { ...TEXT, fontSize: '11px', color: '#b8a890', wordWrap: { width: PANEL_W - 20 } });
-    this.stats = add(74, '');
-    add(128, t('cafe.orders'), head);
-    this.orders = add(146, '', { ...TEXT, fontSize: '12px' });
+    this.stats = add(74, '', { ...TEXT, fontSize: '12px' });
+    add(160, t('cafe.orders'), head);
+    this.orders = add(178, '', { ...TEXT, fontSize: '12px' });
 
     add(262, t('brew.title'), head);
     this.brewInfo = add(280, '', { ...TEXT, fontSize: '12px', wordWrap: { width: PANEL_W - 20 } });
@@ -114,24 +114,40 @@ export class CafeHud {
   update(s: SimulationSnapshot): void {
     const cafe = s.cafe;
     if (!cafe) return;
-    set(this.stats, [t('hud.coins', { n: s.economy.coins }) + '   ' + t('hud.exp', { n: s.economy.exp }), t('cafe.queue', { n: cafe.queue.length, seats: cafe.freeSpots }), this.stockLine(s)].join('\n'));
+    const p = s.progression;
+    set(this.stats, [
+      t('hud.coins', { n: s.economy.coins }) + '   ' + t('hud.level', { level: p.level, exp: p.exp - p.levelStartExp, need: p.nextLevelExp - p.levelStartExp }),
+      t('cafe.reputation', { rep: s.reputation.value.toFixed(1), traffic: s.reputation.traffic.toFixed(2) }),
+      t('cafe.served', { served: s.reputation.served, failed: s.reputation.failed }),
+      t('cafe.queue', { n: cafe.queue.length, seats: cafe.freeSpots }),
+      this.stockLine(s),
+    ].join('\n'));
 
     const lines = cafe.orders.map((o) => {
       const c = cafe.customers.find((x) => x.id === o.customerId);
       const pat = c?.patience == null ? '' : ` ${Math.round(c.patience * 100)}%`;
       return `#${o.id} ${this.recipes[o.recipeId]?.label ?? o.recipeId} · ${t(`order.${o.status}`)}${pat}`;
     });
-    set(this.orders, lines.length ? lines.slice(0, 7).join('\n') : t('cafe.noOrders'));
+    set(this.orders, lines.length ? lines.slice(0, 5).join('\n') : t('cafe.noOrders'));
 
     this.updateBrew(s);
 
     for (const b of this.supplyButtons) b.setVisible(s.shop === 'supplies');
 
-    const recent = cafe.recentOrders.slice(0, 7).map((o) => {
-      const last = o.history.at(-1);
-      return `#${o.id} ${this.recipes[o.recipeId]?.label ?? o.recipeId} → ${t(`order.${o.status}`)}${last?.reason ? ` (${t(`cafe.reason.${last.reason}`)})` : ''}`;
+    // Ratings first (with feedback), then other recent outcomes (cancelled / failed orders).
+    const rated = s.reputation.recent.slice(0, 4).map((f) => {
+      const stars = '★'.repeat(f.stars) + '☆'.repeat(5 - f.stars);
+      const words = f.feedback.map((k) => t(`rating.${k}`)).join(', ');
+      return `#${f.orderId} ${this.recipes[f.recipeId]?.label ?? f.recipeId} ${stars} +${f.coins}+${f.tip}${words ? ` · ${words}` : ''}`;
     });
-    set(this.recent, recent.join('\n') || '-');
+    const failed = cafe.recentOrders
+      .filter((o) => o.status !== 'COMPLETED')
+      .slice(0, 3)
+      .map((o) => {
+        const last = o.history.at(-1);
+        return `#${o.id} ${this.recipes[o.recipeId]?.label ?? o.recipeId} → ${t(`order.${o.status}`)}${last?.reason ? ` (${t(`cafe.reason.${last.reason}`)})` : ''}`;
+      });
+    set(this.recent, [...rated, ...failed].join('\n') || '-');
   }
 
   private stockLine(s: SimulationSnapshot): string {

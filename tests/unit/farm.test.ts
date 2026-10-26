@@ -126,7 +126,8 @@ describe('farming rules', () => {
     expect(sim.farm.buySeeds('arabica', 2).ok).toBe(true);
     expect(sim.tx.coins).toBe(100);
     expect(sim.tx.count('seed_arabica')).toBe(2);
-    expect(sim.farm.buySeeds('culi', 2)).toMatchObject({ ok: false, reason: 'insufficientCoins' });
+    expect(sim.farm.buySeeds('arabica', 3)).toMatchObject({ ok: false, reason: 'insufficientCoins' });
+    expect(sim.farm.buySeeds('culi', 1)).toMatchObject({ ok: false, reason: 'levelTooLow' }); // Culi unlocks at level 3
     expect(sim.tx.coins).toBe(100);
     expect(sim.farm.buySeeds('arabica', 0)).toMatchObject({ ok: false, reason: 'invalidQuantity' });
     sim.clickTile({ x: 14, y: 11 });

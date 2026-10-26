@@ -52,6 +52,7 @@ export class FarmService {
     private readonly bus: EventBus<GameEvents>,
     private readonly clock: Clock,
     private readonly shops: ShopSessionService,
+    private readonly isSeedUnlocked: (seedId: string) => boolean = () => true,
   ) {
     this.syncPlotsWithMap();
     this.update();
@@ -266,6 +267,7 @@ export class FarmService {
     if (!this.shops.isOpen('seeds')) return no('shopClosed');
     const seed = this.seeds[seedId];
     if (!seed) return no('unknownSeed');
+    if (!this.isSeedUnlocked(seedId)) return no('levelTooLow');
     if (!Number.isInteger(qty) || qty <= 0) return no('invalidQuantity');
     const res = this.tx.execute({ reason: `buySeeds:${seedId}`, coins: -seed.purchaseCost * qty, items: [{ itemId: seed.seedItem, qty, quality: 50 }] });
     return res.ok ? OK : no(res.error);

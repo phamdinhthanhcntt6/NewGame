@@ -30,6 +30,14 @@ export class FeedbackPresenter {
         const at = customerPos(e.customerId);
         if (at && e.reason !== 'served') sink.showFeedback(at, t(`cafe.reason.${e.reason}`), 'error');
       }),
+      bus.on('cafe:rated', (e) => {
+        const at = customerPos(e.customerId);
+        if (!at) return;
+        const stars = '★'.repeat(e.stars) + '☆'.repeat(5 - e.stars);
+        const words = e.feedback.map((k) => t(`rating.${k}`)).join(', ');
+        sink.showFeedback(at, `${stars} ${words} +${e.coins + e.tip}`, e.stars >= 4 ? 'ok' : e.stars >= 3 ? 'info' : 'error');
+      }),
+      bus.on('progression:levelUp', (e) => sink.showFeedback(playerPos(), t('progression.levelUp', { level: e.to }), 'ok')),
       bus.on('order:changed', (e) => {
         const at = customerPos(e.customerId);
         if (at && e.to === 'ACCEPTED') sink.showFeedback(at, t('cafe.accepted'), 'ok');

@@ -16,6 +16,16 @@ export interface ServiceOutcome {
   exp: number;
 }
 export type RatingPolicy = (order: Order, drink: Drink, customer: Customer) => ServiceOutcome;
+
+/** Optional links to progression/reputation (all default to neutral). */
+export interface CafeHooks {
+  /** > 1 = customers arrive more often (good reputation). */
+  trafficFactor?: () => number;
+  /** Customers only order recipes the player has unlocked. */
+  isRecipeUnlocked?: (recipeId: string) => boolean;
+  /** A customer left unhappy without being served. */
+  onCustomerFailed?: (reason: string) => void;
+}
 export const baseRewardPolicy: RatingPolicy = (order) => ({ coins: order.reward.coins, exp: order.reward.exp });
 
 export type CustomerState =
@@ -119,6 +129,8 @@ export interface CustomerView {
 export type CafeResult = { ok: true } | { ok: false; reason: string; applicable?: boolean };
 
 const FAILURES = new Set(['impatient', 'timeout', 'queueFull', 'blocked', 'noSeat']);
+/** Departures that hurt reputation (a blocked path is a map problem, not service). */
+const UNHAPPY = new Set(['impatient', 'timeout', 'queueFull']);
 
 /**
  * Café floor simulation: spawns customers on a schedule, walks them in from
@@ -151,6 +163,7 @@ export class CafeService {
     private readonly bodyRadius: number,
     private readonly tx: TransactionService,
     private readonly rate: RatingPolicy = baseRewardPolicy,
+    private readonly hooks: CafeHooks = {},
   ) {
     const one = (name: string): TilePos => {
       const m = world.markers(name)[0];
@@ -297,7 +310,7 @@ export class CafeService {
     if (this.open && t >= this.nextSpawnAt) {
       if (this.customers.size < this.config.spawn.maxConcurrent) this.spawn();
       const s = this.config.spawn;
-      this.nextSpawnAt = t + this.rng.range(s.minIntervalMs, s.maxIntervalMs);
+      this.nextSpawnAt = t + this.rng.range(s.minIntervalMs, s.maxIntervalMs) / Math.max(0.1, this.hooks.trafficFactor?.() ?? 1);
     }
     for (const c of [...this.customers.values()]) this.update(c, dtMs);
     for (const [id, c] of this.customers) if (c.gone) this.customers.delete(id);
@@ -308,7 +321,10 @@ export class CafeService {
     const archetypes = this.config.archetypes;
     const key = archetype && archetypes[archetype] ? archetype : this.rng.weighted(Object.fromEntries(Object.entries(archetypes).map(([k, a]) => [k, a.weight])));
     const def = archetypes[key]!;
-    const recipes = Object.fromEntries(Object.entries(def.preferences).filter(([rid]) => this.orders.recipes[rid]));
+    const unlocked = (rid: string) => !!this.orders.recipes[rid] && (this.hooks.isRecipeUnlocked?.(rid) ?? true);
+    let recipes = Object.fromEntries(Object.entries(def.preferences).filter(([rid]) => unlocked(rid)));
+    // Nothing they like is on the menu yet: they order something that is.
+    if (Object.keys(recipes).length === 0) recipes = Object.fromEntries(Object.keys(this.orders.recipes).filter(unlocked).map((rid) => [rid, 1]));
     const chosen = recipeId && this.orders.recipes[recipeId] ? recipeId : this.rng.weighted(recipes);
     const id = `c${this.nextId++}`;
     const now = this.now;
@@ -437,6 +453,7 @@ export class CafeService {
     }
     c.leaveReason = reason;
     c.satisfaction = this.satisfaction(c, reason);
+    if (UNHAPPY.has(reason)) this.hooks.onCustomerFailed?.(reason);
     this.setState(c, 'LEAVING');
     this.setTarget(c, this.exitTile);
     this.bus.emit('customer:left', { customerId: c.id, reason, satisfaction: c.satisfaction });

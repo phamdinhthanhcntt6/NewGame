@@ -108,7 +108,7 @@ export class FarmHud {
     const eco = s.economy;
     const farm = s.farm;
     set(this.stats, [
-      t('hud.coins', { n: eco.coins }) + '   ' + t('hud.exp', { n: eco.exp }),
+      t('hud.coins', { n: eco.coins }) + '   ' + t('hud.level', { level: s.progression.level, exp: s.progression.exp - s.progression.levelStartExp, need: s.progression.nextLevelExp - s.progression.levelStartExp }),
       t('hud.can', { n: farm.can.water, max: farm.can.capacity }),
       t('hud.capacity', { n: eco.itemCount, max: eco.capacity }),
     ].join('\n'));
@@ -118,8 +118,9 @@ export class FarmHud {
       const seed = this.seeds[r.id]!;
       const owned = eco.inventory[seed.seedItem]?.qty ?? 0;
       r.select.setLabel(`${seed.label} x${owned}`).setSelected(farm.selectedSeed === r.id);
-      r.buy1.setEnabled(shopOpen && eco.coins >= seed.purchaseCost);
-      r.buy5.setEnabled(shopOpen && eco.coins >= seed.purchaseCost * 5);
+      const unlocked = s.progression.level >= seed.unlockLevel;
+      r.buy1.setLabel(unlocked ? `+1 (${seed.purchaseCost})` : t('hud.needLevel', { level: seed.unlockLevel })).setEnabled(unlocked && shopOpen && eco.coins >= seed.purchaseCost);
+      r.buy5.setEnabled(unlocked && shopOpen && eco.coins >= seed.purchaseCost * 5);
     }
     set(this.shopLine, shopOpen ? t('hud.shopOpen') : t('hud.shopClosed'));
     this.shopLine.setColor(shopOpen ? '#9fe08a' : '#b8a890');

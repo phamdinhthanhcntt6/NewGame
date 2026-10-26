@@ -175,7 +175,7 @@ describe('brewing rules', () => {
 });
 
 describe('serving', () => {
-  it('serve by clicking the seat: customer receives, tastes, rates, pays exactly once, leaves', () => {
+  it('serve by clicking the seat: customer receives, tastes, rates, pays the rated amount exactly once, leaves', () => {
     const { sim } = cafeSim();
     give(sim, 'roasted_arabica', 1);
     give(sim, 'milk', 1);
@@ -183,16 +183,21 @@ describe('serving', () => {
     brewLatte(sim);
     const coins = sim.tx.coins;
     const paid: number[] = [];
+    const rated: Array<{ coins: number; tip: number; stars: number }> = [];
     sim.bus.on('cafe:paid', (e) => paid.push(e.coins));
+    sim.bus.on('cafe:rated', (e) => rated.push(e));
     use(sim, c.spot!.objectId);
     expect(sim.player.heldItem).toBeNull();
     expect(sim.player.state).toBe('IDLE');
     expect(['RECEIVING', 'TASTING', 'RATING', 'LEAVING']).toContain(c.fsm.state);
     runUntil(sim, () => c.fsm.is('LEAVING'), 20_000);
-    const recipe = CONTENT.recipes.latte!;
     expect(sim.orders.get(c.orderId!)!.status).toBe('COMPLETED');
-    expect(sim.tx.coins).toBe(coins + recipe.basePrice);
-    expect(paid).toEqual([recipe.basePrice]);
+    expect(rated).toHaveLength(1);
+    const r = rated[0]!;
+    expect(r.stars).toBe(5); // perfect brew with the preferred bean, served fast
+    expect(r.coins).toBe(Math.round(CONTENT.recipes.latte!.basePrice * 1.3));
+    expect(paid).toEqual([r.coins + r.tip]);
+    expect(sim.tx.coins).toBe(coins + r.coins + r.tip);
     expect(c.leaveReason).toBe('served');
   });
 

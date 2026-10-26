@@ -49,7 +49,7 @@ export function installTestBridge(scene: WorldScene): void {
   if (import.meta.env.PROD) return;
   const log: Array<{ type: string; payload: unknown }> = [];
   const bus = scene.sim.bus;
-  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected', 'order:changed', 'customer:spawned', 'customer:left', 'customer:removed', 'world:travelRequested', 'brew:started', 'brew:finished', 'brew:aborted', 'cafe:paid'] as const) {
+  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected', 'order:changed', 'customer:spawned', 'customer:left', 'customer:removed', 'world:travelRequested', 'brew:started', 'brew:finished', 'brew:aborted', 'cafe:paid', 'cafe:rated', 'progression:levelUp'] as const) {
     bus.on(type, (payload) => log.push({ type, payload }));
   }
   const canvasRect = () => scene.game.canvas.getBoundingClientRect();

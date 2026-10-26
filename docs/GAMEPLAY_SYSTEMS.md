@@ -242,3 +242,33 @@ locked ──buyPlot──▶ EMPTY ─prepare─▶ PREPARED ─plant(−1 seed
 ## 21. Supplies & café HUD (M5)
 - `supply_shelf` opens the `supplies` shop session; `SupplyService.buy` sells milk (5) and condensed milk (6) through `TransactionService`.
 - `CafeHud` (placeholder) shows coins and stock, open orders, the brewing panel (progress, next station, bean/addition buttons, timing bar with target zone, Stop/Space, Cancel), supply buttons at the shelf, and recent outcomes. It issues only `CafeUiCommands`.
+
+## 22. Customer ratings (M6)
+`src/gameplay/cafe/RatingService.ts`, data `data/config/progression.json` (`rating`, `reputation`).
+- **Score 0–100** = 40% recipe accuracy + 25% bean quality + 20% brewing performance + 15% serving time (weights in data, validated to sum to 1):
+  - *recipe accuracy* = share of correct ingredient choices × 100;
+  - *bean quality* = the bean stack's quality, +10 if it is the recipe's preferred bean (cap 100);
+  - *brewing performance* = mean timing accuracy × 100;
+  - *serving time* = 100 while served within 25% of the customer's drink patience (from order accepted to served), then linearly down to 0 at 100%.
+- **Stars:** thresholds 0 / 40 / 55 / 70 / 85 → 1–5★.
+- **Feedback** (deterministic rules, thresholds in data):
+  - *Sai món*: any wrong ingredient choice;
+  - *Đắng quá*: the extract needle stopped > 0.08 past target;
+  - *Ngọt quá*: condensed milk by mistake, or a sweet recipe's pour > 0.10 past target;
+  - *Cà phê nguội*: served > 45 s after the drink was ready;
+  - *Phục vụ chậm*: served after 60% of patience;
+  - *Thơm tuyệt*: preferred bean of quality ≥ 80;
+  - *Ngon tuyệt*: 4★+ with no complaint.
+- **Pay:** `round(base × [0.6, 0.8, 1.0, 1.15, 1.3][★])` + tip `round(base × [0, 0, 0, 10%, 25%][★] × (1 + (reputation − 3) × 0.1))`. **EXP:** base × [0.5, 0.75, 1, 1.25, 1.5][★]. Paid once through `TransactionService` (key `order:<id>:paid`).
+- **History:** every rating is stored in `state.cafe.feedback` (last 50: stars, score, components, feedback, coins, tip, EXP) and shown in the HUD.
+
+## 23. Reputation & traffic (M6)
+- Reputation = average of the last 20 ratings (starts at 3★). Customers who leave unhappy (`impatient`, `timeout`, `queueFull`) count as **1★**; a blocked path does not (map problem, not service).
+- **Traffic:** spawn intervals are divided by `clamp(0.6, 1.45, 1 + (reputation − 3) × 0.15)`, so a 5★ café sees ~30% more customers and a 1★ café ~30% fewer. This is tested with the same RNG seed at 5★ vs 1★.
+- **Tips** scale with reputation (see §22). Stats `served` / `failed` are saved.
+
+## 24. Levels & unlocks (M6)
+`src/gameplay/progression/ProgressionService.ts`.
+- Level from total EXP: level *L* starts at `50 × L × (L − 1)` EXP (0, 100, 300, 600, 1000…). EXP comes only through `TransactionService` (harvests, processing, served drinks).
+- `progression:levelUp` fires once per level gained.
+- **Unlocks:** recipes (`recipeUnlockLevel`: espresso / americano / cà phê sữa đá at 1, latte at 2, cappuccino at 3). Customers only order unlocked recipes; if none of their favourites is unlocked they pick any unlocked one. Seeds follow `seeds.json unlockLevel` (Culi at 3); `buySeeds` refuses with `levelTooLow`, and the HUD shows "Cần cấp 3".

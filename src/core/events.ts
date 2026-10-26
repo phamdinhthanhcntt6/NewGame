@@ -51,6 +51,9 @@ export interface GameEvents {
   'brew:aborted': { orderId: number; reason: 'cancelled' | 'orderEnded' };
   'brew:discarded': { drinkId: string; orderId: number };
   'cafe:paid': { orderId: number; coins: number; exp: number };
+  'cafe:rated': { orderId: number; customerId: string; stars: number; score: number; feedback: string[]; coins: number; tip: number };
+  'cafe:reputationChanged': { reputation: number; reason: string };
+  'progression:levelUp': { from: number; to: number };
   'shop:opened': { shopId: string; objectId: string };
   'shop:closed': { shopId: string };
   'save:written': { at: number };
