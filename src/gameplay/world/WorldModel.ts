@@ -81,6 +81,17 @@ export class WorldModel {
     });
     for (const o of map.objects) this.addObject(o.id, o.type, { x: o.x, y: o.y }, o.rotation ?? 0, o.props ?? {});
     if (!this.grid.isWalkable(map.playerStart)) throw new MapValidationError(['playerStart is not walkable']);
+    const badMarkers: string[] = [];
+    for (const [name, tiles] of Object.entries(map.markers ?? {})) {
+      tiles.forEach((tile, i) => {
+        if (!this.grid.isWalkable(tile)) badMarkers.push(`marker ${name}[${i}] at ${tile.x},${tile.y} is not walkable`);
+      });
+    }
+    if (badMarkers.length) throw new MapValidationError(badMarkers);
+  }
+
+  markers(name: string): TilePos[] {
+    return (this.map.markers?.[name] ?? []).map((m) => ({ ...m }));
   }
 
   terrainKind(t: TilePos): string | undefined {

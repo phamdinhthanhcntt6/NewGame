@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 import { HudScene } from './scenes/HudScene';
 import { WorldScene, type WorldSceneData } from './scenes/WorldScene';
 
-// ?map=sandbox opens the M1 movement sandbox (never saved). Default: the farm.
+// ?map=sandbox opens the M1 movement sandbox (never saved). Default: the map you were last on (farm for a new game).
 const params = new URLSearchParams(window.location.search);
-const mapId = params.get('map') ?? 'farm';
-const start: WorldSceneData = { mapId, persistent: mapId !== 'sandbox', fresh: params.has('fresh') };
+const mapParam = params.get('map');
+const start: WorldSceneData = { ...(mapParam ? { mapId: mapParam } : {}), persistent: mapParam !== 'sandbox', fresh: params.has('fresh') };
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,

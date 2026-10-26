@@ -16,8 +16,8 @@
 | **M1** | Core engine, movement, interactions | **Done 2026-10-26** | Click/tap-to-move, A*, collision, auto-approach, interaction queue, cancellation, 5 player states, click-what-you-see hit-testing, render adapter. 41 unit + 8 E2E tests pass |
 | **M2** | Full farming loop | **Done 2026-10-26** | Plot FSM `EMPTY→PREPARED→PLANTED→GROWING→READY→HARVESTED`; locked land + purchase; soil upgrades; seed shop; watering can + well; timestamp growth that survives reload; harvest → inventory exactly once; central TransactionService; versioned localStorage save. 78 unit + 13 E2E tests pass |
 | **M3** | Processing, selling, shared inventory | **Done 2026-10-26** | Cherries → green → roasted with equipment, time, capacity and quality; market sell by quantity; transaction history; one inventory |
-| M4 | Customer AI & orders | Next | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
-| M5 | Brewing mini-game & serving | — | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
+| **M4** | Customer AI & orders | **Done 2026-10-26** | Customer FSM `SPAWNING→…→LEAVING`; queue; patience; order FSM `CREATED→…→COMPLETED` + `FAILED/CANCELLED` |
+| M5 | Brewing mini-game & serving | Next | 5 recipes; grind / portafilter / extract / add / finish steps scored; ingredients consumed; carry → serve once |
 | M6 | Ratings, economy, progression | — | Rating 40/25/20/15; feedback text + history; reputation → traffic/tips; XP/levels; central transaction service |
 | M7 | Furniture & decoration | — | Buy, preview, validate, rotate, place, move, remove; nav grid rebuild; real bonuses |
 | M8 | Employees | — | Barista/Cashier/Server/Farm worker with task assignment + FSM, using the same interaction system as the player |
@@ -63,3 +63,17 @@
 - **Totals:** 100 unit + 17 E2E tests; 8 more mutation checks caught.
 - **Known issues:** GAMEPLAY_TEST_PLAN §5.
 - **M4 unblocked:** yes. Roasted beans sit in the shared inventory, ready for café recipes. Customers reuse `Actor` + `InteractionService` + A*.
+
+## M4 report (2026-10-26)
+- **Playable flow:**
+  1. On the farm, click the teal **sign** (right edge) to travel to the café; in the café, the teal sign top-right goes back. The game saves before every trip, and reopening resumes on the last map.
+  2. Customers appear on the street, walk in through the door, and queue at the order counter.
+  3. The first one shows a "Latte?" bubble. Click the **order counter**: the player walks behind it and takes the order, and the customer walks to a reserved seat (or a standing spot).
+  4. Bars under customers show remaining patience. Unanswered or unserved customers give up and walk out ("Khách chờ lâu, bỏ về").
+  5. The café HUD lists open orders with status and patience, plus queue length, free seats and recent outcomes.
+- **Evidence:** [café with queue, ordering and seated customers](screenshots/m4-cafe.png)
+- **Delivered:** GAMEPLAY_SYSTEMS §16–§18.
+- **Not in M4 (by design):** brewing, serving and payment. Accepted orders currently always end FAILED (timeout); M5 adds `PREPARING → READY → SERVED → COMPLETED`.
+- **Bug found by E2E and fixed:** Phaser reuses scene instances on restart, so the HUD kept a destroyed farm panel after travelling (console error). Panels are now reset on create/shutdown, and travel is deferred to the start of the next frame.
+- **Totals:** 118 unit + 20 E2E tests; 7 more mutation checks caught.
+- **M5 unblocked:** yes. Orders carry recipe, ingredients, time limit, expected quality and reward. `CafeService` has the RECEIVING → TASTING → RATING states ready for serving.

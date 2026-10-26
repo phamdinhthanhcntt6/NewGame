@@ -7,6 +7,7 @@ import { PlaceholderRenderer } from '../components/render/PlaceholderRenderer';
 import type { ActorView } from '../components/render/WorldRenderer';
 import { PlotPresenter } from '../components/presenters/PlotPresenter';
 import { EquipmentPresenter } from '../components/presenters/EquipmentPresenter';
+import { CustomerPresenter } from '../components/presenters/CustomerPresenter';
 import { FeedbackPresenter } from '../ui/FeedbackPresenter';
 import { installTestBridge } from '../core/testBridge';
 import { screenToWorld } from '../utils/iso';
@@ -15,7 +16,8 @@ import { worldToTile, type TilePos } from '../utils/tile';
 export const WORLD_SCENE = 'WorldScene';
 
 export interface WorldSceneData {
-  mapId: string;
+  /** Omitted = resume the map the save was on. */
+  mapId?: string;
   persistent: boolean;
   /** Dev/test only: start from a fresh game, discarding the stored save. */
   fresh?: boolean;
@@ -33,6 +35,10 @@ export class WorldScene extends Phaser.Scene {
   private feedback!: FeedbackPresenter;
   private plots!: PlotPresenter;
   private equipment!: EquipmentPresenter;
+  private customers: CustomerPresenter | null = null;
+  private travelling = false;
+  /** Set by the travel event; performed at the start of the next frame, never mid-tick. */
+  private pendingTravel: string | null = null;
   private hoveredObject: string | null = null;
   private launchData!: WorldSceneData;
 
@@ -51,7 +57,10 @@ export class WorldScene extends Phaser.Scene {
   create(): void {
     const clock = new SystemClock(import.meta.env.PROD ? 0 : readDebugClockOffset());
     if (this.launchData.fresh && !import.meta.env.PROD) window.localStorage.removeItem('tcss.save.slot1');
-    this.session = createSession({ mapId: this.launchData.mapId, content: CONTENT, persistent: this.launchData.persistent, clock });
+    this.travelling = false;
+    this.pendingTravel = null;
+    this.hoveredObject = null; // scene instances are reused on restart
+    this.session = createSession({ ...(this.launchData.mapId ? { mapId: this.launchData.mapId } : {}), content: CONTENT, persistent: this.launchData.persistent, clock });
     this.autosave = new Autosave(this.session);
     const world = this.sim.world;
 
@@ -67,14 +76,21 @@ export class WorldScene extends Phaser.Scene {
       floor,
       world.allObjects().map((o) => ({ id: o.id, type: o.type, label: o.def.label, footprint: o.footprint, rotation: o.rotation, interactive: !!o.def.interaction })),
     );
-    // Layout policy: the farm HUD panel occupies the right edge (FarmHud PANEL_W + margin).
-    this.worldRenderer.frame(world.width, world.height, this.sim.farm.allPlotViews().length > 0 ? 346 : 0);
+    // Layout policy: the farm/café HUD panel occupies the right edge (PANEL_W + margin).
+    const hasHud = this.sim.farm.allPlotViews().length > 0 || this.sim.cafe !== null;
+    this.worldRenderer.frame(world.width, world.height, hasHud ? 346 : 0);
     this.scale.on(Phaser.Scale.Events.RESIZE, () => this.worldRenderer.reframe());
 
     this.playerView = this.worldRenderer.createActor('player', 'player');
-    this.feedback = new FeedbackPresenter(this.sim.bus, world, this.worldRenderer, () => this.sim.player.pos);
+    this.feedback = new FeedbackPresenter(this.sim.bus, world, this.worldRenderer, () => this.sim.player.pos, (id) => this.sim.cafe?.customer(id)?.actor.pos);
     this.plots = new PlotPresenter(this.worldRenderer, CONTENT.seeds);
     this.equipment = new EquipmentPresenter(this.worldRenderer);
+    if (this.sim.cafe) this.customers = new CustomerPresenter(this.worldRenderer, CONTENT.recipes);
+
+    // Travel: commit state with the destination, then rebuild the world from the save.
+    this.sim.bus.on('world:travelRequested', ({ map }) => {
+      if (!this.travelling && this.session.saves) this.pendingTravel = map;
+    });
 
     this.input.mouse?.disableContextMenu();
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
@@ -96,7 +112,9 @@ export class WorldScene extends Phaser.Scene {
     installTestBridge(this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      flush();
+      if (!this.travelling) flush(); // travel already saved with the destination map
+      this.customers?.destroy();
+      this.customers = null;
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('pagehide', flush);
       this.autosave.destroy();
@@ -107,6 +125,8 @@ export class WorldScene extends Phaser.Scene {
   }
 
   override update(time: number, delta: number): void {
+    if (this.travelling) return;
+    if (this.pendingTravel) return this.travel(this.pendingTravel);
     this.sim.tick(delta);
     const s = this.sim.snapshot();
     const cur = s.interaction.current;
@@ -120,7 +140,18 @@ export class WorldScene extends Phaser.Scene {
     this.worldRenderer.setPathPreview(s.player.waypoints.length ? [s.player.pos, ...s.player.waypoints] : null);
     this.plots.sync(s.farm.plots);
     this.equipment.sync(s.processing.equipment);
+    if (s.cafe) this.customers?.sync(s.cafe.customers);
     this.autosave.update(time);
+  }
+
+  /** Commit state with the destination map, then rebuild the world (and HUD) from the save. */
+  private travel(map: string): void {
+    this.travelling = true;
+    this.pendingTravel = null;
+    this.sim.prepareTravel(map);
+    this.session.saves!.save(this.sim.state, this.sim.clock.now());
+    this.scene.stop('HudScene');
+    this.scene.restart({ mapId: map, persistent: true });
   }
 
   /** Pointer → tile, using the camera's own inverse transform. */

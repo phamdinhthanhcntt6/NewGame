@@ -16,7 +16,7 @@ export interface FeedbackSink {
 export class FeedbackPresenter {
   private readonly offs: Array<() => void> = [];
 
-  constructor(bus: EventBus<GameEvents>, world: WorldModel, sink: FeedbackSink, playerPos: () => WorldPos) {
+  constructor(bus: EventBus<GameEvents>, world: WorldModel, sink: FeedbackSink, playerPos: () => WorldPos, customerPos: (id: string) => WorldPos | undefined = () => undefined) {
     const objectPos = (id: string): WorldPos => {
       const o = world.getObject(id);
       return o ? { x: o.footprint.x + o.footprint.w / 2, y: o.footprint.y + o.footprint.h / 2 } : playerPos();
@@ -26,6 +26,14 @@ export class FeedbackPresenter {
       bus.on('interaction:completed', (e) => sink.showFeedback(objectPos(e.objectId), t('feedback.done', { action: t(`action.${e.actionId}`) }), 'ok')),
       bus.on('interaction:queued', (e) => sink.showFeedback(objectPos(e.objectId), t('feedback.queued', { n: e.queueLength }), 'info')),
       bus.on('move:unreachable', (e) => sink.showFeedback(tileCenter(e.target), t('feedback.fail.unreachable'), 'error')),
+      bus.on('customer:left', (e) => {
+        const at = customerPos(e.customerId);
+        if (at && e.reason !== 'served') sink.showFeedback(at, t(`cafe.reason.${e.reason}`), 'error');
+      }),
+      bus.on('order:changed', (e) => {
+        const at = customerPos(e.customerId);
+        if (at && e.to === 'ACCEPTED') sink.showFeedback(at, t('cafe.accepted'), 'ok');
+      }),
     );
   }
 

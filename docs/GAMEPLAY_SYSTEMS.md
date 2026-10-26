@@ -191,3 +191,30 @@ locked ──buyPlot──▶ EMPTY ─prepare─▶ PREPARED ─plant(−1 seed
 - `ShopSessionService` (`src/systems/shop/`) is shared by the seed stall (`seeds`) and the market (`market`). Opening one closes the other; walking more than 2 tiles away closes it.
 - **HUD:** the right column is `FarmHud` (top) + `StationHud` (bottom, context: market → selected machine → inventory). Both issue commands only through narrow interfaces (`FarmUiCommands`, `StationUiCommands`).
 - **Save schema v2** adds `processing` and `market`; `SAVE_MIGRATIONS[1]` upgrades v1 saves.
+
+## 16. Café floor & customers (M4)
+`src/gameplay/cafe/CafeService.ts`, data `data/config/customers.json`, map `data/maps/cafe.json`.
+- **Map markers:** `spawn` (street), `exit` (street), `door`, `orderPoint`, `queue[5]`, `waitSpots[4]`; seats are the `chair` objects (non-blocking). Markers are validated walkable at load.
+- **Customer FSM** (illegal transitions throw):
+  `SPAWNING → ENTERING → (QUEUING) → WALKING_TO_ORDER → ORDERING → WAITING → RECEIVING → TASTING → RATING → LEAVING`.
+  `QUEUING` is an addition to the brief's list (standing in line behind the order point). Walking to a seat happens inside `WAITING`.
+- **Spawning:** the first customer arrives after `firstDelayMs`, then every `min..maxIntervalMs`, capped at `maxConcurrent`. Archetype and drink are chosen with a seeded RNG (weights from data), so tests are deterministic.
+- **No teleporting:** customers spawn on the street and move with `Actor.stepMovement` along A* paths at their archetype speed. A test asserts per-tick displacement ≤ speed × dt for every customer over 3 minutes.
+- **Queue:** FIFO; index 0 walks to the order point, others stand on queue tiles and step forward as the line moves. A full queue (1 + 5) turns arrivals away (`queueFull`).
+- **Seats:** taking an order reserves a free seat (else a standing spot) for that customer; reservations are unique and released on departure. With nothing free the order can't be taken (`noSeat`) and the customer keeps waiting (patience still runs).
+- **Patience:** order patience runs from joining the queue until the order is taken; drink patience runs from acceptance until serving. Expiry → `impatient` (order CANCELLED) or `timeout` (order FAILED), then the customer walks out.
+- **Blocked paths / stuck:** paths are retried every `retryPathMs`; after `giveUpBlockedMs` the customer leaves (`blocked`). A customer that doesn't move for `stuckCheckMs` repaths, up to `maxRepaths`. If even the exit is unreachable, the customer is removed with `customer:removed` rather than staying forever. A 20-minute fuzz checks that nobody outlives their total patience.
+- **Satisfaction** (placeholder until M6 ratings): failures = 10; otherwise 100 − 40 × queue-wait share − 40 × drink-wait share.
+- Customers and orders are **transient**: they are not saved. Leaving the café ends them.
+
+## 17. Orders (M4)
+`src/gameplay/cafe/OrderService.ts`, recipes in `data/config/recipes.json` (Espresso, Americano, Latte, Cappuccino, Cà phê sữa đá).
+- **Order:** customer id, recipe id, ingredients (by exact item, by category such as any roasted bean, or a utility such as tap water), created time, time limit (= the customer's drink patience), expected quality, reward (base price + EXP), status, status history with reasons.
+- **Transition table:** `CREATED → ACCEPTED | CANCELLED`; `ACCEPTED → PREPARING | FAILED | CANCELLED`; `PREPARING → READY | FAILED | CANCELLED`; `READY → SERVED | FAILED | CANCELLED`; `SERVED → COMPLETED`; terminal states never change. Illegal transitions are refused (`illegalTransition`), not thrown.
+- **Taking orders:** the `order_counter` can only be used from its north side (behind the counter). The action succeeds only when a customer is ordering at the order point *and* a seat or standing spot is free.
+
+## 18. Travel & scene lifecycle (M4)
+- `travel_sign` objects carry `props.map`. Using one emits `world:travelRequested`.
+- The world scene performs travel at the **start of the next frame**: `prepareTravel` (cancel actions, commit state, set `player.map` to the destination), save, stop the HUD, restart the world scene with the new map. Shutdown flushing is skipped during travel so it can't overwrite the destination.
+- Opening the game without `?map=` resumes the saved map (farm for a new game). `?map=sandbox` is never saved.
+- **Phaser reuses scene instances on restart:** scenes must reset per-run fields in `create()`. HUD panels and hover state are reset explicitly.

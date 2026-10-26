@@ -1,0 +1,42 @@
+{
+  "espresso": {
+    "label": "Espresso",
+    "ingredients": [{ "category": "roasted", "qty": 1 }],
+    "basePrice": 45,
+    "expReward": 6,
+    "expectedQuality": 60,
+    "preferredBean": "roasted_arabica"
+  },
+  "americano": {
+    "label": "Americano",
+    "ingredients": [{ "category": "roasted", "qty": 1 }, { "utility": "water", "qty": 1 }],
+    "basePrice": 45,
+    "expReward": 6,
+    "expectedQuality": 55,
+    "preferredBean": "roasted_arabica"
+  },
+  "latte": {
+    "label": "Latte",
+    "ingredients": [{ "category": "roasted", "qty": 1 }, { "itemId": "milk", "qty": 1 }],
+    "basePrice": 60,
+    "expReward": 10,
+    "expectedQuality": 60,
+    "preferredBean": "roasted_arabica"
+  },
+  "cappuccino": {
+    "label": "Cappuccino",
+    "ingredients": [{ "category": "roasted", "qty": 1 }, { "itemId": "milk", "qty": 1 }],
+    "basePrice": 65,
+    "expReward": 11,
+    "expectedQuality": 65,
+    "preferredBean": "roasted_arabica"
+  },
+  "vn_milk_coffee": {
+    "label": "Cà phê sữa đá",
+    "ingredients": [{ "category": "roasted", "qty": 1 }, { "itemId": "condensed_milk", "qty": 1 }],
+    "basePrice": 55,
+    "expReward": 8,
+    "expectedQuality": 55,
+    "preferredBean": "roasted_robusta"
+  }
+}

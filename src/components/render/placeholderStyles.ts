@@ -25,6 +25,10 @@ export const PLACEHOLDER_STYLES: Record<string, PlaceholderStyle> = {
   drying_rack: { color: 0xb59466, height: 14 },
   roaster: { color: 0x4a4a52, height: 44 },
   market_stall: { color: 0x3f7fb5, height: 36 },
+  order_counter: { color: 0xd19a55, height: 30 },
+  cafe_table: { color: 0x8b5a2b, height: 22 },
+  chair: { color: 0xc49a6c, height: 8 },
+  travel_sign: { color: 0x2f9e8f, height: 48 },
   tree: { color: 0x2f6b34, height: 72 },
 };
 
@@ -59,6 +63,7 @@ export const DEFAULT_STYLE: PlaceholderStyle = { color: 0xff00ff, height: 24 };
 export const TERRAIN_COLORS: Record<string, { top: number; height: number }> = {
   floor: { top: 0xd9c3a0, height: 0 },
   grass: { top: 0xa9c47f, height: 0 },
+  street: { top: 0x8d8a85, height: 0 },
   wall: { top: 0x3e2f27, height: 48 },
 };
 

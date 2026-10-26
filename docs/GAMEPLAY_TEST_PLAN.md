@@ -63,6 +63,16 @@ Farm → market with real clicks (harvest, dry, roast, sell all via HUD; exact p
 
 UI-focused E2E tests may use the dev-only `__TCSS__.grantItems`, which still goes through `TransactionService` (reason `debug:grant`). The full-chain test uses no grants.
 
+## 3d. M4 coverage (all passing 2026-10-26) — totals now 118 unit + 20 E2E
+
+### Unit — 18 new tests (`cafe.test.ts`)
+Map capacity (8 seats, 4 standing spots, 5-tile queue); spawn schedule + concurrency cap; **no teleporting** (per-tick displacement bound over 3 minutes); complete order fields; queue order and advancing; unique seats; `noSeat` when full; `queueFull`; impatient → CANCELLED + walks out + queue advances; timeout → FAILED + seat released; blocked door → `blocked`; sealed café → `customer:removed` (never stuck); taking orders by clicking the counter (from behind it); "no customer" feedback; **20-minute fuzz** (unique reservations, queue members in queue states, nobody outlives their patience); order transition table (happy path, illegal jumps, terminal states, unknown ids/recipes); travel sign event.
+
+### E2E — 3 new tests (`tests/e2e/m4-cafe.spec.ts`)
+Farm → café → farm through signs with shared inventory and reload resuming on the last map (this test caught the HUD scene-reuse bug); customer walks in from the street, the player takes the order with a real click, the customer gets a seat; an untaken order is cancelled for impatience and the customer walks out.
+
+The café's automatic spawner is off in tests that spawn customers themselves (`cafeSim({ autoSpawn })`, `__TCSS__.setCafeOpen`), so they control exactly who arrives.
+
 ## 4. Mutation checks performed for M1
 | Deliberate break | Tests failing |
 |---|---|
@@ -96,6 +106,17 @@ UI-focused E2E tests may use the dev-only `__TCSS__.grantItems`, which still goe
 | No saturation after selling | 3 |
 | Sale pays more than the quote | 1 |
 
+### M4 mutation checks
+| Deliberate break | Unit tests failing |
+|---|---|
+| Order transitions unchecked | 1 |
+| No order patience | 2 |
+| No drink patience | 2 |
+| Accept with no free seat | 1 |
+| Unbounded queue | 1 |
+| Seat never released | 1 |
+| Customers jump to the end of their path (teleport) | 2 |
+
 ## 5. Known issues / gaps (after M2)
 1. **No customer or employee actors yet**, so actor–actor overlap and avoidance are untested (M4/M8).
 2. **Depth sorting** uses a footprint heuristic tested at fixed probe points. Long multi-tile objects with actors on diagonal corners may still mis-sort; this needs a visual test map when real sprites arrive.
@@ -113,13 +134,17 @@ UI-focused E2E tests may use the dev-only `__TCSS__.grantItems`, which still goe
 14. **The world snapshot is built twice per frame** (world + HUD scenes) and now includes equipment views and market history. Fine at this scale; it should be shared once customers arrive.
 15. **Station panel recipe buttons** sit at fixed positions; long localized labels could overflow. Placeholder only.
 16. **No free "sell quantity" stepper:** selling is by 1 / 10 / all buttons. `MarketService.sell` accepts any quantity; the UI just doesn't offer it yet.
+17. **Customers can overlap each other** while walking (no actor–actor collision); reservations prevent two customers targeting the same seat or queue tile. Local avoidance is a polish item.
+18. **Accepted orders always fail by timeout until M5** adds brewing and serving.
+19. **Customers/orders are not saved;** leaving the café or reloading ends them (by design for the prototype).
+20. **Travel restarts the whole world scene** (rebuild from save, about one frame). Fine for placeholder art; production may want a transition screen.
 
 ## 6. Planned coverage per milestone
 | Milestone | Key automated checks |
 |---|---|
 | M2 | ✅ done (§3b) |
 | M3 | ✅ done (§3c) |
-| M4 | Customers never teleport (max displacement per tick); queue order; patience → FAILED; blocked path → customer leaves, no stuck NPCs (fuzz) |
+| M4 | ✅ done (§3d) |
 | M5 | Each mini-game input changes quality; ingredients consumed once; a drink can be served only once |
 | M6 | Rating weights 40/25/20/15 table tests; reputation/traffic/tips; no negative balance; reward idempotency |
 | M7 | Placement validation; nav rebuild; furniture bonus applied; persistence |

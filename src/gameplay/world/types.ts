@@ -45,6 +45,8 @@ export interface MapData {
   terrain: string[];
   playerStart: TilePos;
   objects: MapObjectData[];
+  /** Named walkable spots for AI (spawn, exit, door, orderPoint, queue, waitSpots…). */
+  markers?: Record<string, TilePos[]>;
 }
 
 export interface WorldObject {

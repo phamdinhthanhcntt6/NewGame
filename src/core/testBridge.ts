@@ -32,6 +32,9 @@ export interface TestBridge {
   saveNow(): boolean;
   /** Dev-only cheat for UI-focused tests: grants items through the TransactionService (reason "debug:grant"). */
   grantItems(itemId: string, qty: number, quality?: number): boolean;
+  /** Café only: spawn a customer now / turn the automatic spawner on or off. */
+  spawnCustomer(archetype?: string): string | null;
+  setCafeOpen(open: boolean): void;
 }
 
 declare global {
@@ -44,7 +47,7 @@ export function installTestBridge(scene: WorldScene): void {
   if (import.meta.env.PROD) return;
   const log: Array<{ type: string; payload: unknown }> = [];
   const bus = scene.sim.bus;
-  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected'] as const) {
+  for (const type of ['actor:stateChanged', 'move:started', 'move:arrived', 'move:unreachable', 'interaction:queued', 'interaction:started', 'interaction:completed', 'interaction:failed', 'interaction:cancelled', 'actor:heldChanged', 'economy:transaction', 'farm:plotChanged', 'shop:opened', 'shop:closed', 'save:written', 'world:objectSelected', 'order:changed', 'customer:spawned', 'customer:left', 'customer:removed', 'world:travelRequested'] as const) {
     bus.on(type, (payload) => log.push({ type, payload }));
   }
   const canvasRect = () => scene.game.canvas.getBoundingClientRect();
@@ -96,6 +99,10 @@ export function installTestBridge(scene: WorldScene): void {
       return { x: r.left + (bounds.centerX * r.width) / scene.scale.width, y: r.top + (bounds.centerY * r.height) / scene.scale.height, enabled: b.isEnabled };
     },
     saveNow: () => scene.autosave.saveNow(),
+    spawnCustomer: (archetype) => scene.sim.cafe?.spawn(archetype).id ?? null,
+    setCafeOpen: (open) => {
+      if (scene.sim.cafe) scene.sim.cafe.open = open;
+    },
     grantItems: (itemId, qty, quality = 50) => scene.sim.tx.execute({ reason: 'debug:grant', items: [{ itemId, qty, quality }] }).ok,
   };
 }

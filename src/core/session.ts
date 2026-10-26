@@ -4,7 +4,8 @@ import { LocalStorageAdapter, SaveService, type LoadResult, type StorageAdapter 
 import { SystemClock, type Clock } from './Clock';
 
 export interface SessionOptions {
-  mapId: string;
+  /** Map to open; omitted = the map the save was on (default farm). */
+  mapId?: string;
   content: GameContent;
   /** false = throwaway session (M1 sandbox, tests); nothing is loaded or saved. */
   persistent: boolean;
@@ -22,16 +23,20 @@ export interface GameSession {
 }
 
 export function createSession(o: SessionOptions): GameSession {
-  const map = o.content.maps[o.mapId];
-  if (!map) throw new Error(`unknown map "${o.mapId}"`);
   const clock = o.clock ?? new SystemClock();
+  const mapOf = (id: string) => {
+    const m = o.content.maps[id];
+    if (!m) throw new Error(`unknown map "${id}"`);
+    return structuredClone(m);
+  };
   if (!o.persistent) {
-    return { sim: new GameSimulation(structuredClone(map), o.content, { clock }), saves: null, loadProblem: null, saveBlocked: true };
+    return { sim: new GameSimulation(mapOf(o.mapId ?? 'farm'), o.content, { clock }), saves: null, loadProblem: null, saveBlocked: true };
   }
   const saves = new SaveService(o.storage ?? new LocalStorageAdapter());
   const loaded = saves.load(clock.now());
   const state = loaded.status === 'ok' ? loaded.state : undefined;
-  const sim = new GameSimulation(structuredClone(map), o.content, { clock, ...(state ? { state } : {}) });
+  const savedMap = state && o.content.maps[state.player.map] && state.player.map !== 'sandbox' ? state.player.map : 'farm';
+  const sim = new GameSimulation(mapOf(o.mapId ?? savedMap), o.content, { clock, ...(state ? { state } : {}) });
   const loadProblem = loaded.status === 'ok' || loaded.status === 'empty' ? null : loaded;
   return { sim, saves, loadProblem, saveBlocked: loaded.status === 'unsupported' };
 }

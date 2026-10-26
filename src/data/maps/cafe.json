@@ -1,0 +1,229 @@
+{
+  "id": "cafe",
+  "name": "Quán cà phê đầu tiên (M4)",
+  "legend": {
+    "#": {
+      "kind": "wall",
+      "walkable": false
+    },
+    ".": {
+      "kind": "floor",
+      "walkable": true
+    },
+    ",": {
+      "kind": "street",
+      "walkable": true
+    }
+  },
+  "terrain": [
+    "##############",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "#............#",
+    "######,,######",
+    ",,,,,,,,,,,,,,"
+  ],
+  "playerStart": {
+    "x": 5,
+    "y": 2
+  },
+  "objects": [
+    {
+      "id": "counter_l1",
+      "type": "counter",
+      "x": 2,
+      "y": 4
+    },
+    {
+      "id": "counter_l2",
+      "type": "counter",
+      "x": 3,
+      "y": 4
+    },
+    {
+      "id": "counter_l3",
+      "type": "counter",
+      "x": 4,
+      "y": 4
+    },
+    {
+      "id": "order_counter",
+      "type": "order_counter",
+      "x": 5,
+      "y": 4
+    },
+    {
+      "id": "counter_r1",
+      "type": "counter",
+      "x": 7,
+      "y": 4
+    },
+    {
+      "id": "farm_door",
+      "type": "travel_sign",
+      "x": 12,
+      "y": 1,
+      "props": {
+        "map": "farm"
+      }
+    },
+    {
+      "id": "table_1",
+      "type": "cafe_table",
+      "x": 9,
+      "y": 6
+    },
+    {
+      "id": "table_2",
+      "type": "cafe_table",
+      "x": 11,
+      "y": 6
+    },
+    {
+      "id": "table_3",
+      "type": "cafe_table",
+      "x": 9,
+      "y": 9
+    },
+    {
+      "id": "table_4",
+      "type": "cafe_table",
+      "x": 11,
+      "y": 9
+    },
+    {
+      "id": "chair_1",
+      "type": "chair",
+      "x": 9,
+      "y": 5
+    },
+    {
+      "id": "chair_2",
+      "type": "chair",
+      "x": 9,
+      "y": 7
+    },
+    {
+      "id": "chair_3",
+      "type": "chair",
+      "x": 11,
+      "y": 5
+    },
+    {
+      "id": "chair_4",
+      "type": "chair",
+      "x": 11,
+      "y": 7
+    },
+    {
+      "id": "chair_5",
+      "type": "chair",
+      "x": 9,
+      "y": 8
+    },
+    {
+      "id": "chair_6",
+      "type": "chair",
+      "x": 9,
+      "y": 10
+    },
+    {
+      "id": "chair_7",
+      "type": "chair",
+      "x": 11,
+      "y": 8
+    },
+    {
+      "id": "chair_8",
+      "type": "chair",
+      "x": 11,
+      "y": 10
+    },
+    {
+      "id": "plant_c1",
+      "type": "plant",
+      "x": 1,
+      "y": 11
+    },
+    {
+      "id": "plant_c2",
+      "type": "plant",
+      "x": 12,
+      "y": 11
+    }
+  ],
+  "markers": {
+    "spawn": [
+      {
+        "x": 0,
+        "y": 13
+      }
+    ],
+    "exit": [
+      {
+        "x": 13,
+        "y": 13
+      }
+    ],
+    "door": [
+      {
+        "x": 6,
+        "y": 11
+      }
+    ],
+    "orderPoint": [
+      {
+        "x": 5,
+        "y": 5
+      }
+    ],
+    "queue": [
+      {
+        "x": 5,
+        "y": 6
+      },
+      {
+        "x": 5,
+        "y": 7
+      },
+      {
+        "x": 5,
+        "y": 8
+      },
+      {
+        "x": 5,
+        "y": 9
+      },
+      {
+        "x": 5,
+        "y": 10
+      }
+    ],
+    "waitSpots": [
+      {
+        "x": 2,
+        "y": 8
+      },
+      {
+        "x": 3,
+        "y": 8
+      },
+      {
+        "x": 2,
+        "y": 9
+      },
+      {
+        "x": 3,
+        "y": 9
+      }
+    ]
+  }
+}

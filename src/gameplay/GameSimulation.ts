@@ -15,6 +15,10 @@ import { MarketService } from './market/MarketService';
 import { ProcessingService, type EquipmentView } from './processing/ProcessingService';
 import { registerProcessingHandlers } from './processing/processingHandlers';
 import { ShopSessionService, registerShopHandlers } from '../systems/shop/ShopSessionService';
+import { Rng } from '../core/Rng';
+import { CafeService, type CustomerView } from './cafe/CafeService';
+import { OrderService, type Order } from './cafe/OrderService';
+import { registerCafeHandlers } from './cafe/cafeHandlers';
 import { createNewGameState, type GameState, type ItemStack, type TxRecord } from './state/GameState';
 import { WorldModel } from './world/WorldModel';
 import type { MapData } from './world/types';
@@ -53,12 +57,16 @@ export interface SimulationSnapshot {
   shop: string | null;
   processing: { equipment: EquipmentView[]; selectedRecipe: Record<string, string | null> };
   market: { recentSales: TxRecord[] };
+  /** null on maps without a café floor. */
+  cafe: { customers: CustomerView[]; orders: Order[]; recentOrders: Order[]; queue: string[]; freeSpots: number } | null;
 }
 
 export interface SimulationOptions {
   /** Restored save; a new game is created when omitted. */
   state?: GameState;
   clock?: Clock;
+  /** Seed for customer spawning/orders (tests pass a fixed one). */
+  rngSeed?: number;
 }
 
 /**
@@ -78,6 +86,9 @@ export class GameSimulation {
   readonly shops: ShopSessionService;
   readonly processing: ProcessingService;
   readonly market: MarketService;
+  readonly orders: OrderService;
+  /** Present only on maps with a café floor (orderPoint marker). */
+  readonly cafe: CafeService | null;
   readonly player: Actor;
   readonly playerInteraction: InteractionService;
   readonly config: GameplayConfig;
@@ -112,6 +123,11 @@ export class GameSimulation {
     registerShopHandlers(this.actions, this.shops);
     registerFarmHandlers(this.actions, this.farm);
     registerProcessingHandlers(this.actions, this.processing);
+    this.orders = new OrderService(content.recipes, this.bus, () => this.timeMs);
+    this.cafe = this.world.markers('orderPoint').length
+      ? new CafeService(this.world, this.nav, this.orders, content.customers, this.bus, new Rng(opts.rngSeed ?? Date.now()), () => this.timeMs, this.config.player.bodyRadius)
+      : null;
+    registerCafeHandlers(this.actions, this.cafe, this.bus, Object.keys(content.maps));
 
     this.player = new Actor('player', tileCenter(this.startTile()), this.config.player, () => this.timeMs);
     this.player.fsm.onTransition((from, to) => this.bus.emit('actor:stateChanged', { actorId: this.player.id, from, to }));
@@ -137,6 +153,7 @@ export class GameSimulation {
       const dt = Math.min(step, remaining);
       this.timeMs += dt;
       this.playerInteraction.tick(dt);
+      this.cafe?.tick(dt);
       remaining -= dt;
     }
     this.farm.update();
@@ -176,6 +193,18 @@ export class GameSimulation {
     return this.state;
   }
 
+  /**
+   * Prepare persistent state for leaving this map: commit everything and set
+   * the destination so a reload resumes there. Café customers/orders are
+   * transient and simply end.
+   */
+  prepareTravel(targetMap: string): GameState {
+    this.cancel();
+    this.captureState();
+    this.state.player = { map: targetMap, tile: null };
+    return this.state;
+  }
+
   snapshot(): SimulationSnapshot {
     const p = this.player;
     const eco = this.state.economy;
@@ -211,6 +240,9 @@ export class GameSimulation {
       shop: this.shops.current,
       processing: { equipment: this.processing.allViews(), selectedRecipe: { ...this.state.processing.selectedRecipe } },
       market: { recentSales: this.market.recentSales() },
+      cafe: this.cafe
+        ? { customers: this.cafe.views(), orders: this.orders.activeOrders().map((o) => structuredClone(o)), recentOrders: this.orders.recent().slice(0, 8).map((o) => structuredClone(o)), queue: [...this.cafe.queueOrder()], freeSpots: this.cafe.freeSpots() }
+        : null,
     };
   }
 }

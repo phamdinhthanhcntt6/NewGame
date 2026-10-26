@@ -55,6 +55,7 @@ class PlaceholderActorView implements ActorView {
   private readonly label: Phaser.GameObjects.Text;
   private readonly barBg: Phaser.GameObjects.Rectangle;
   private readonly barFill: Phaser.GameObjects.Rectangle;
+  private readonly bubble: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, color: number) {
     this.shadow = scene.add.ellipse(0, 0, 44, 20, 0x000000, 0.25);
@@ -65,6 +66,9 @@ class PlaceholderActorView implements ActorView {
     this.label = scene.add.text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', color: '#ffffff', backgroundColor: '#00000088' }).setOrigin(0.5, 0);
     this.barBg = scene.add.rectangle(0, 0, 50, 7, 0x1b1b1b).setOrigin(0, 0.5);
     this.barFill = scene.add.rectangle(0, 0, 48, 5, 0x6db55a).setOrigin(0, 0.5);
+    this.bubble = scene.add
+      .text(0, 0, '', { fontFamily: 'monospace', fontSize: '12px', color: '#1d1612', backgroundColor: '#ffffff', padding: { x: 4, y: 2 } })
+      .setOrigin(0.5, 1);
   }
 
   update(s: ActorViewState): void {
@@ -84,11 +88,18 @@ class PlaceholderActorView implements ActorView {
     const showBar = s.progress !== null;
     this.barBg.setVisible(showBar).setPosition(p.x - 25, p.y - 74).setDepth(d + 0.04);
     this.barFill.setVisible(showBar).setPosition(p.x - 24, p.y - 74).setDepth(d + 0.05);
-    if (showBar) this.barFill.width = 48 * (s.progress ?? 0);
+    if (showBar) {
+      const p = s.progress ?? 0;
+      this.barFill.width = 48 * p;
+      this.barFill.fillColor = p > 0.5 ? 0x6db55a : p > 0.25 ? 0xf2c14e : 0xc8463d;
+    }
+    const bubble = s.bubble ?? null;
+    this.bubble.setVisible(bubble !== null).setPosition(p.x, p.y - 80).setDepth(d + 0.06);
+    if (bubble !== null && this.bubble.text !== bubble) this.bubble.setText(bubble);
   }
 
   destroy(): void {
-    for (const o of [this.shadow, this.body, this.nose, this.held, this.heldLabel, this.label, this.barBg, this.barFill]) o.destroy();
+    for (const o of [this.shadow, this.body, this.nose, this.held, this.heldLabel, this.label, this.barBg, this.barFill, this.bubble]) o.destroy();
   }
 }
 
@@ -108,14 +119,14 @@ export class PlaceholderRenderer implements WorldRenderer {
 
   buildWorld(floor: FloorTileView[], objects: ObjectViewData[]): void {
     const ground = this.scene.add.graphics().setDepth(floorDepth);
-    const maxX = Math.max(...floor.map((t) => t.tile.x));
-    const maxY = Math.max(...floor.map((t) => t.tile.y));
+    const walkable = new Set(floor.filter((t) => t.walkable).map((t) => `${t.tile.x},${t.tile.y}`));
     for (const t of floor) {
       const style = TERRAIN_COLORS[t.kind] ?? TERRAIN_COLORS.floor!;
       const f = { x: t.tile.x, y: t.tile.y, w: 1, h: 1 };
       if (style.height > 0) {
-        // Cutaway: walls on the camera-facing (south/east) edges stay low so they never hide actors.
-        const front = t.tile.x === maxX || t.tile.y === maxY;
+        // Cutaway: a wall with walkable space north or west of it stands between that space and
+        // the camera (isometric view looks from the south-east), so it stays low and never hides actors.
+        const front = walkable.has(`${t.tile.x},${t.tile.y - 1}`) || walkable.has(`${t.tile.x - 1},${t.tile.y}`);
         drawBox(this.scene.add.graphics().setDepth(footprintDepth(f)), f, style.top, front ? 8 : style.height);
       } else {
         const checker = (t.tile.x + t.tile.y) % 2 === 0 ? 1 : 0.94;

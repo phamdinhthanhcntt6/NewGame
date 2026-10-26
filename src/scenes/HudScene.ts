@@ -5,6 +5,7 @@ import type { GameSession } from '../core/session';
 import { DebugPanel } from '../ui/DebugPanel';
 import { FarmHud } from '../ui/FarmHud';
 import { StationHud, type StationUiCommands } from '../ui/StationHud';
+import { CafeHud } from '../ui/CafeHud';
 import type { Button } from '../ui/widgets/Button';
 
 /** UI overlay with its own un-zoomed camera, running on top of a world scene. */
@@ -12,6 +13,7 @@ export class HudScene extends Phaser.Scene {
   private panel!: DebugPanel;
   farmHud: FarmHud | null = null;
   stationHud: StationHud | null = null;
+  cafeHud: CafeHud | null = null;
   private session!: GameSession;
 
   constructor() {
@@ -28,9 +30,12 @@ export class HudScene extends Phaser.Scene {
   }
 
   create(): void {
+    // Phaser reuses the scene instance on restart: never keep panels from a previous map.
+    this.farmHud = this.stationHud = this.cafeHud = null;
     const sim = this.session.sim;
     this.panel = new DebugPanel(this, sim.bus);
-    if (sim.farm.allPlotViews().length > 0) {
+    if (sim.cafe) this.cafeHud = new CafeHud(this, CONTENT.recipes, CONTENT.items);
+    else if (sim.farm.allPlotViews().length > 0) {
       this.farmHud = new FarmHud(this, sim.bus, sim.farm, CONTENT.seeds);
       const station: StationUiCommands = {
         selectRecipe: (type, rid) => sim.processing.selectRecipe(type, rid),
@@ -56,6 +61,8 @@ export class HudScene extends Phaser.Scene {
       this.panel.destroy();
       this.farmHud?.destroy();
       this.stationHud?.destroy();
+      this.cafeHud?.destroy();
+      this.farmHud = this.stationHud = this.cafeHud = null;
     });
   }
 
@@ -64,5 +71,6 @@ export class HudScene extends Phaser.Scene {
     this.panel.update(s, this.game.loop.actualFps);
     this.farmHud?.update(s);
     this.stationHud?.update(s);
+    this.cafeHud?.update(s);
   }
 }

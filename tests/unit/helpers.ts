@@ -64,3 +64,13 @@ export function collectEvents(sim: GameSimulation): Array<{ type: string; payloa
   for (const t of types) sim.bus.on(t, (payload) => log.push({ type: t, payload }));
   return log;
 }
+
+export const CAFE = CONTENT.maps.cafe!;
+
+/** Café simulation. The automatic spawner is off unless autoSpawn is set, so tests control who arrives. */
+export function cafeSim(opts: { seed?: number; state?: GameState; autoSpawn?: boolean } = {}): { sim: GameSimulation; clock: FakeClock } {
+  const clock = new FakeClock();
+  const sim = new GameSimulation(structuredClone(CAFE), CONTENT, { clock, rngSeed: opts.seed ?? 1, ...(opts.state ? { state: opts.state } : {}) });
+  if (sim.cafe) sim.cafe.open = opts.autoSpawn ?? false;
+  return { sim, clock };
+}

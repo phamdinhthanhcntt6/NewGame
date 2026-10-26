@@ -1,4 +1,37 @@
 {
+  "order_counter": {
+    "label": "Order counter",
+    "footprint": { "w": 2, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": ["N"],
+      "actions": [
+        { "id": "take_order", "label": "Take order", "durationMs": 500, "handler": "cafe.takeOrder", "params": {} }
+      ]
+    }
+  },
+  "cafe_table": {
+    "label": "Table",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true
+  },
+  "chair": {
+    "label": "Chair",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": false
+  },
+  "travel_sign": {
+    "label": "Travel",
+    "footprint": { "w": 1, "h": 1 },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        { "id": "travel", "label": "Travel", "durationMs": 300, "handler": "travel.go", "params": {} }
+      ]
+    }
+  },
   "wall_post": {
     "label": "Post",
     "footprint": { "w": 1, "h": 1 },

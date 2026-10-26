@@ -1,4 +1,4 @@
-import type { ActorState, Facing } from '../../entities/Actor';
+import type { Facing } from '../../entities/Actor';
 import type { Footprint, TilePos, WorldPos } from '../../utils/tile';
 
 /**
@@ -24,11 +24,14 @@ export interface ObjectViewData {
 
 export interface ActorViewState {
   pos: WorldPos;
-  state: ActorState;
+  /** State label (player or customer FSM state). */
+  state: string;
   facing: Facing;
   heldItem: string | null;
-  /** 0–1 while WORKING, null otherwise. */
+  /** 0–1 while WORKING (player) or remaining patience (customer); null hides the bar. */
   progress: number | null;
+  /** Speech bubble text (e.g. a customer's order); null hides it. */
+  bubble?: string | null;
 }
 
 /**

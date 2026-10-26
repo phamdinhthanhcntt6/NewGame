@@ -301,6 +301,15 @@
       "type": "market_stall",
       "x": 2,
       "y": 10
+    },
+    {
+      "id": "cafe_sign",
+      "type": "travel_sign",
+      "x": 16,
+      "y": 5,
+      "props": {
+        "map": "cafe"
+      }
     }
   ]
 }

@@ -1,6 +1,7 @@
 import type { TilePos } from '../utils/tile';
 import type { ActorState } from '../entities/Actor';
 import type { PlotPhase, TxRecord } from '../gameplay/state/GameState';
+import type { OrderStatus } from '../gameplay/cafe/OrderService';
 
 export type InteractionFailReason =
   | 'unreachable'
@@ -38,6 +39,12 @@ export interface GameEvents {
   'farm:seedSelected': { seedId: string | null };
   'processing:changed': { equipmentId: string; status: 'idle' | 'working' | 'done' };
   'market:sold': { itemId: string; qty: number; coins: number };
+  'order:changed': { orderId: number; customerId: string; recipeId: string; from: OrderStatus | null; to: OrderStatus; reason?: string };
+  'customer:spawned': { customerId: string; archetype: string };
+  'customer:stateChanged': { customerId: string; from: string; to: string };
+  'customer:left': { customerId: string; reason: string; satisfaction: number };
+  'customer:removed': { customerId: string; reason: 'stuck' };
+  'world:travelRequested': { map: string };
   'shop:opened': { shopId: string; objectId: string };
   'shop:closed': { shopId: string };
   'save:written': { at: number };
