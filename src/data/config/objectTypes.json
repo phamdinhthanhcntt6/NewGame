@@ -1,201 +1,528 @@
 {
   "order_counter": {
     "label": "Order counter",
-    "footprint": { "w": 2, "h": 1 },
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
-      "sides": ["N"],
+      "sides": [
+        "N"
+      ],
       "actions": [
-        { "id": "take_order", "label": "Take order", "durationMs": 500, "handler": "cafe.takeOrder", "params": {} }
+        {
+          "id": "take_order",
+          "label": "Take order",
+          "durationMs": 500,
+          "handler": "cafe.takeOrder",
+          "params": {}
+        }
       ]
     }
   },
   "cafe_table": {
     "label": "Table",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true
   },
   "chair": {
     "label": "Chair",
-    "footprint": { "w": 1, "h": 1 },
-    "blocking": false
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": false,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        {
+          "id": "serve",
+          "label": "Serve",
+          "durationMs": 400,
+          "handler": "cafe.serve",
+          "params": {}
+        }
+      ]
+    }
   },
   "travel_sign": {
     "label": "Travel",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "travel", "label": "Travel", "durationMs": 300, "handler": "travel.go", "params": {} }
+        {
+          "id": "travel",
+          "label": "Travel",
+          "durationMs": 300,
+          "handler": "travel.go",
+          "params": {}
+        }
       ]
     }
   },
   "wall_post": {
     "label": "Post",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true
   },
   "plant": {
     "label": "Plant",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true
   },
   "counter": {
     "label": "Counter",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true
   },
   "espresso_machine": {
     "label": "Coffee machine",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
-      "sides": ["S"],
+      "sides": [
+        "S"
+      ],
       "actions": [
-        { "id": "brew_test", "label": "Brew test cup", "durationMs": 1500, "handler": "held.take", "params": { "item": "test_cup" } }
+        {
+          "id": "brew_test",
+          "label": "Brew test cup",
+          "durationMs": 1500,
+          "handler": "held.take",
+          "params": {
+            "item": "test_cup"
+          }
+        }
       ]
     }
   },
   "table_2": {
     "label": "Table",
-    "footprint": { "w": 2, "h": 1 },
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "place_cup", "label": "Place cup", "durationMs": 400, "handler": "held.deliver", "params": { "item": "test_cup", "counter": "cupsPlaced" } }
+        {
+          "id": "place_cup",
+          "label": "Place cup",
+          "durationMs": 400,
+          "handler": "held.deliver",
+          "params": {
+            "item": "test_cup",
+            "counter": "cupsPlaced"
+          }
+        }
       ]
     }
   },
   "crate": {
     "label": "Crate",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "pick_box", "label": "Pick up box", "durationMs": 800, "handler": "held.take", "params": { "item": "box" } }
+        {
+          "id": "pick_box",
+          "label": "Pick up box",
+          "durationMs": 800,
+          "handler": "held.take",
+          "params": {
+            "item": "box"
+          }
+        }
       ]
     }
   },
   "shelf": {
     "label": "Shelf",
-    "footprint": { "w": 1, "h": 2 },
+    "footprint": {
+      "w": 1,
+      "h": 2
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
-      "sides": ["E"],
+      "sides": [
+        "E"
+      ],
       "actions": [
-        { "id": "store_box", "label": "Store box", "durationMs": 600, "handler": "held.deliver", "params": { "item": "box", "counter": "boxesStored" } }
+        {
+          "id": "store_box",
+          "label": "Store box",
+          "durationMs": 600,
+          "handler": "held.deliver",
+          "params": {
+            "item": "box",
+            "counter": "boxesStored"
+          }
+        }
       ]
     }
   },
   "statue": {
     "label": "Fenced statue",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "inspect", "label": "Inspect", "durationMs": 0, "handler": "inspect", "params": {} }
+        {
+          "id": "inspect",
+          "label": "Inspect",
+          "durationMs": 0,
+          "handler": "inspect",
+          "params": {}
+        }
       ]
     }
   },
   "sign": {
     "label": "Sign",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "read", "label": "Read sign", "durationMs": 0, "handler": "inspect", "params": {} }
+        {
+          "id": "read",
+          "label": "Read sign",
+          "durationMs": 0,
+          "handler": "inspect",
+          "params": {}
+        }
       ]
     }
   },
   "farm_plot": {
     "label": "Plot",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "harvest", "label": "Harvest", "durationMs": 1200, "handler": "farm.harvest", "params": {} },
-        { "id": "water", "label": "Water", "durationMs": 600, "handler": "farm.water", "params": {} },
-        { "id": "plant", "label": "Plant", "durationMs": 700, "handler": "farm.plant", "params": {} },
-        { "id": "prepare", "label": "Prepare soil", "durationMs": 1000, "handler": "farm.prepare", "params": {} }
+        {
+          "id": "harvest",
+          "label": "Harvest",
+          "durationMs": 1200,
+          "handler": "farm.harvest",
+          "params": {}
+        },
+        {
+          "id": "water",
+          "label": "Water",
+          "durationMs": 600,
+          "handler": "farm.water",
+          "params": {}
+        },
+        {
+          "id": "plant",
+          "label": "Plant",
+          "durationMs": 700,
+          "handler": "farm.plant",
+          "params": {}
+        },
+        {
+          "id": "prepare",
+          "label": "Prepare soil",
+          "durationMs": 1000,
+          "handler": "farm.prepare",
+          "params": {}
+        }
       ]
     }
   },
   "well": {
     "label": "Well",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "refill", "label": "Refill can", "durationMs": 800, "handler": "farm.refill", "params": {} }
+        {
+          "id": "refill",
+          "label": "Refill can",
+          "durationMs": 800,
+          "handler": "farm.refill",
+          "params": {}
+        }
       ]
     }
   },
   "seed_stall": {
     "label": "Seed stall",
-    "footprint": { "w": 2, "h": 1 },
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
-      "sides": ["S"],
+      "sides": [
+        "S"
+      ],
       "actions": [
-        { "id": "open_shop", "label": "Open seed shop", "durationMs": 0, "handler": "shop.open", "params": { "shopId": "seeds" } }
+        {
+          "id": "open_shop",
+          "label": "Open seed shop",
+          "durationMs": 0,
+          "handler": "shop.open",
+          "params": {
+            "shopId": "seeds"
+          }
+        }
       ]
     }
   },
   "drying_rack": {
     "label": "Drying rack",
-    "footprint": { "w": 2, "h": 1 },
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "collect", "label": "Collect", "durationMs": 600, "handler": "process.collect", "params": {} },
-        { "id": "load", "label": "Load batch", "durationMs": 900, "handler": "process.load", "params": {} }
+        {
+          "id": "collect",
+          "label": "Collect",
+          "durationMs": 600,
+          "handler": "process.collect",
+          "params": {}
+        },
+        {
+          "id": "load",
+          "label": "Load batch",
+          "durationMs": 900,
+          "handler": "process.load",
+          "params": {}
+        }
       ]
     }
   },
   "roaster": {
     "label": "Roaster",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
       "actions": [
-        { "id": "collect", "label": "Collect", "durationMs": 600, "handler": "process.collect", "params": {} },
-        { "id": "load", "label": "Load batch", "durationMs": 900, "handler": "process.load", "params": {} }
+        {
+          "id": "collect",
+          "label": "Collect",
+          "durationMs": 600,
+          "handler": "process.collect",
+          "params": {}
+        },
+        {
+          "id": "load",
+          "label": "Load batch",
+          "durationMs": 900,
+          "handler": "process.load",
+          "params": {}
+        }
       ]
     }
   },
   "market_stall": {
     "label": "Market",
-    "footprint": { "w": 2, "h": 1 },
+    "footprint": {
+      "w": 2,
+      "h": 1
+    },
     "blocking": true,
     "interaction": {
       "radius": 1,
-      "sides": ["N"],
+      "sides": [
+        "N"
+      ],
       "actions": [
-        { "id": "open_market", "label": "Open market", "durationMs": 0, "handler": "shop.open", "params": { "shopId": "market" } }
+        {
+          "id": "open_market",
+          "label": "Open market",
+          "durationMs": 0,
+          "handler": "shop.open",
+          "params": {
+            "shopId": "market"
+          }
+        }
       ]
     }
   },
   "farmhouse": {
     "label": "Farmhouse",
-    "footprint": { "w": 3, "h": 2 },
+    "footprint": {
+      "w": 3,
+      "h": 2
+    },
     "blocking": true
   },
   "tree": {
     "label": "Tree",
-    "footprint": { "w": 1, "h": 1 },
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
     "blocking": true
+  },
+  "grinder": {
+    "label": "Grinder",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": [
+        "S"
+      ],
+      "actions": [
+        {
+          "id": "brew_step",
+          "label": "Use station",
+          "durationMs": 300,
+          "handler": "brew.station",
+          "params": {}
+        }
+      ]
+    }
+  },
+  "cafe_espresso": {
+    "label": "Espresso machine",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": [
+        "S"
+      ],
+      "actions": [
+        {
+          "id": "brew_step",
+          "label": "Use station",
+          "durationMs": 300,
+          "handler": "brew.station",
+          "params": {}
+        }
+      ]
+    }
+  },
+  "milk_station": {
+    "label": "Milk station",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": [
+        "S"
+      ],
+      "actions": [
+        {
+          "id": "brew_step",
+          "label": "Use station",
+          "durationMs": 300,
+          "handler": "brew.station",
+          "params": {}
+        }
+      ]
+    }
+  },
+  "supply_shelf": {
+    "label": "Supplies",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": true,
+    "interaction": {
+      "radius": 1,
+      "sides": [
+        "S"
+      ],
+      "actions": [
+        {
+          "id": "open_supplies",
+          "label": "Open supplies",
+          "durationMs": 0,
+          "handler": "shop.open",
+          "params": {
+            "shopId": "supplies"
+          }
+        }
+      ]
+    }
+  },
+  "standing_spot": {
+    "label": "Standing spot",
+    "footprint": {
+      "w": 1,
+      "h": 1
+    },
+    "blocking": false,
+    "interaction": {
+      "radius": 1,
+      "actions": [
+        {
+          "id": "serve",
+          "label": "Serve",
+          "durationMs": 400,
+          "handler": "cafe.serve",
+          "params": {}
+        }
+      ]
+    }
   }
 }

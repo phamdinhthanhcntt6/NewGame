@@ -1,42 +1,294 @@
 {
   "espresso": {
     "label": "Espresso",
-    "ingredients": [{ "category": "roasted", "qty": 1 }],
+    "ingredients": [
+      {
+        "category": "roasted",
+        "qty": 1
+      }
+    ],
     "basePrice": 45,
     "expReward": 6,
     "expectedQuality": 60,
-    "preferredBean": "roasted_arabica"
+    "preferredBean": "roasted_arabica",
+    "steps": [
+      {
+        "id": "select_bean",
+        "kind": "choose_bean",
+        "station": "grinder"
+      },
+      {
+        "id": "grind",
+        "kind": "timing",
+        "station": "grinder",
+        "target": 0.7,
+        "tolerance": 0.06,
+        "periodMs": 1600
+      },
+      {
+        "id": "tamp",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.5,
+        "tolerance": 0.08,
+        "periodMs": 1400
+      },
+      {
+        "id": "extract",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.8,
+        "tolerance": 0.05,
+        "periodMs": 2000
+      }
+    ]
   },
   "americano": {
     "label": "Americano",
-    "ingredients": [{ "category": "roasted", "qty": 1 }, { "utility": "water", "qty": 1 }],
+    "ingredients": [
+      {
+        "category": "roasted",
+        "qty": 1
+      },
+      {
+        "utility": "water",
+        "qty": 1
+      }
+    ],
     "basePrice": 45,
     "expReward": 6,
     "expectedQuality": 55,
-    "preferredBean": "roasted_arabica"
+    "preferredBean": "roasted_arabica",
+    "steps": [
+      {
+        "id": "select_bean",
+        "kind": "choose_bean",
+        "station": "grinder"
+      },
+      {
+        "id": "grind",
+        "kind": "timing",
+        "station": "grinder",
+        "target": 0.7,
+        "tolerance": 0.06,
+        "periodMs": 1600
+      },
+      {
+        "id": "tamp",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.5,
+        "tolerance": 0.08,
+        "periodMs": 1400
+      },
+      {
+        "id": "extract",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.8,
+        "tolerance": 0.05,
+        "periodMs": 2000
+      },
+      {
+        "id": "choose_addition",
+        "kind": "choose_addition",
+        "station": "milk_station",
+        "correct": "water"
+      },
+      {
+        "id": "pour",
+        "kind": "timing",
+        "station": "milk_station",
+        "target": 0.75,
+        "tolerance": 0.08,
+        "periodMs": 1500
+      }
+    ]
   },
   "latte": {
     "label": "Latte",
-    "ingredients": [{ "category": "roasted", "qty": 1 }, { "itemId": "milk", "qty": 1 }],
+    "ingredients": [
+      {
+        "category": "roasted",
+        "qty": 1
+      },
+      {
+        "itemId": "milk",
+        "qty": 1
+      }
+    ],
     "basePrice": 60,
     "expReward": 10,
     "expectedQuality": 60,
-    "preferredBean": "roasted_arabica"
+    "preferredBean": "roasted_arabica",
+    "steps": [
+      {
+        "id": "select_bean",
+        "kind": "choose_bean",
+        "station": "grinder"
+      },
+      {
+        "id": "grind",
+        "kind": "timing",
+        "station": "grinder",
+        "target": 0.7,
+        "tolerance": 0.06,
+        "periodMs": 1600
+      },
+      {
+        "id": "tamp",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.5,
+        "tolerance": 0.08,
+        "periodMs": 1400
+      },
+      {
+        "id": "extract",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.8,
+        "tolerance": 0.05,
+        "periodMs": 2000
+      },
+      {
+        "id": "choose_addition",
+        "kind": "choose_addition",
+        "station": "milk_station",
+        "correct": "milk"
+      },
+      {
+        "id": "pour",
+        "kind": "timing",
+        "station": "milk_station",
+        "target": 0.6,
+        "tolerance": 0.07,
+        "periodMs": 1500
+      }
+    ]
   },
   "cappuccino": {
     "label": "Cappuccino",
-    "ingredients": [{ "category": "roasted", "qty": 1 }, { "itemId": "milk", "qty": 1 }],
+    "ingredients": [
+      {
+        "category": "roasted",
+        "qty": 1
+      },
+      {
+        "itemId": "milk",
+        "qty": 1
+      }
+    ],
     "basePrice": 65,
     "expReward": 11,
     "expectedQuality": 65,
-    "preferredBean": "roasted_arabica"
+    "preferredBean": "roasted_arabica",
+    "steps": [
+      {
+        "id": "select_bean",
+        "kind": "choose_bean",
+        "station": "grinder"
+      },
+      {
+        "id": "grind",
+        "kind": "timing",
+        "station": "grinder",
+        "target": 0.7,
+        "tolerance": 0.06,
+        "periodMs": 1600
+      },
+      {
+        "id": "tamp",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.5,
+        "tolerance": 0.08,
+        "periodMs": 1400
+      },
+      {
+        "id": "extract",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.8,
+        "tolerance": 0.05,
+        "periodMs": 2000
+      },
+      {
+        "id": "choose_addition",
+        "kind": "choose_addition",
+        "station": "milk_station",
+        "correct": "milk"
+      },
+      {
+        "id": "pour",
+        "kind": "timing",
+        "station": "milk_station",
+        "target": 0.45,
+        "tolerance": 0.06,
+        "periodMs": 1500
+      }
+    ]
   },
   "vn_milk_coffee": {
     "label": "Cà phê sữa đá",
-    "ingredients": [{ "category": "roasted", "qty": 1 }, { "itemId": "condensed_milk", "qty": 1 }],
+    "ingredients": [
+      {
+        "category": "roasted",
+        "qty": 1
+      },
+      {
+        "itemId": "condensed_milk",
+        "qty": 1
+      }
+    ],
     "basePrice": 55,
     "expReward": 8,
     "expectedQuality": 55,
-    "preferredBean": "roasted_robusta"
+    "preferredBean": "roasted_robusta",
+    "steps": [
+      {
+        "id": "select_bean",
+        "kind": "choose_bean",
+        "station": "grinder"
+      },
+      {
+        "id": "grind",
+        "kind": "timing",
+        "station": "grinder",
+        "target": 0.7,
+        "tolerance": 0.06,
+        "periodMs": 1600
+      },
+      {
+        "id": "tamp",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.5,
+        "tolerance": 0.08,
+        "periodMs": 1400
+      },
+      {
+        "id": "extract",
+        "kind": "timing",
+        "station": "cafe_espresso",
+        "target": 0.8,
+        "tolerance": 0.05,
+        "periodMs": 2000
+      },
+      {
+        "id": "choose_addition",
+        "kind": "choose_addition",
+        "station": "milk_station",
+        "correct": "condensed_milk"
+      },
+      {
+        "id": "pour",
+        "kind": "timing",
+        "station": "milk_station",
+        "target": 0.35,
+        "tolerance": 0.08,
+        "periodMs": 1500
+      }
+    ]
   }
 }

@@ -158,6 +158,54 @@
       "type": "plant",
       "x": 12,
       "y": 11
+    },
+    {
+      "id": "grinder",
+      "type": "grinder",
+      "x": 2,
+      "y": 1
+    },
+    {
+      "id": "espresso",
+      "type": "cafe_espresso",
+      "x": 4,
+      "y": 1
+    },
+    {
+      "id": "milk_station",
+      "type": "milk_station",
+      "x": 6,
+      "y": 1
+    },
+    {
+      "id": "supply_shelf",
+      "type": "supply_shelf",
+      "x": 9,
+      "y": 1
+    },
+    {
+      "id": "stand_1",
+      "type": "standing_spot",
+      "x": 2,
+      "y": 8
+    },
+    {
+      "id": "stand_2",
+      "type": "standing_spot",
+      "x": 3,
+      "y": 8
+    },
+    {
+      "id": "stand_3",
+      "type": "standing_spot",
+      "x": 2,
+      "y": 9
+    },
+    {
+      "id": "stand_4",
+      "type": "standing_spot",
+      "x": 3,
+      "y": 9
     }
   ],
   "markers": {
@@ -205,24 +253,6 @@
       {
         "x": 5,
         "y": 10
-      }
-    ],
-    "waitSpots": [
-      {
-        "x": 2,
-        "y": 8
-      },
-      {
-        "x": 3,
-        "y": 8
-      },
-      {
-        "x": 2,
-        "y": 9
-      },
-      {
-        "x": 3,
-        "y": 9
       }
     ]
   }

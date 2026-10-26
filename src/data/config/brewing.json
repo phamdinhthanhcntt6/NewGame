@@ -1,0 +1,25 @@
+{
+  "additions": {
+    "milk": {
+      "label": "Sữa tươi",
+      "itemId": "milk"
+    },
+    "condensed_milk": {
+      "label": "Sữa đặc",
+      "itemId": "condensed_milk"
+    },
+    "water": {
+      "label": "Nước nóng",
+      "itemId": null
+    }
+  },
+  "scoring": {
+    "zeroAt": 0.35,
+    "beanWeight": 0.5,
+    "performanceWeight": 0.5
+  },
+  "supplies": {
+    "milk": 5,
+    "condensed_milk": 6
+  }
+}
